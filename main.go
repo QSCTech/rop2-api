@@ -11,21 +11,21 @@ import (
 	"gorm.io/gorm"
 )
 
-func dbInit() error {
+func dbInit() (*gorm.DB, error) {
 	if dsn, ok := os.LookupEnv("ROP2_DSN"); ok {
 		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 		if err != nil {
-			return err
+			return db, err
 		}
-		db.AutoMigrate(&model.Org{})
-		return nil
+		db.AutoMigrate(&model.Org{}, &model.Depart{})
+		return db, err
 	} else {
-		return errors.New("dns not found")
+		return &gorm.DB{}, errors.New("dns not found")
 	}
 }
 
 func main() {
-	err := dbInit()
+	_, err := dbInit()
 	if err != nil {
 		println(err)
 		return
