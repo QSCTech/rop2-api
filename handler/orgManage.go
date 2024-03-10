@@ -12,6 +12,7 @@ func orgInit(routerGroup gin.RouterGroup) {
 		if id, exist := ctx.GetQuery("id"); exist {
 			if idNum, err := strconv.ParseUint(id, 10, 32); err == nil {
 				//TODO
+				_ = idNum
 			}
 		} else {
 			utils.BadRequest(ctx, "缺少id")

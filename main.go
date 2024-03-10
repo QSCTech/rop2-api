@@ -1,12 +1,36 @@
 package main
 
 import (
+	"errors"
+	"os"
 	"rop2-api/handler"
+	"rop2-api/model"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
+func dbInit() error {
+	if dsn, ok := os.LookupEnv("ROP2_DSN"); ok {
+		db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			return err
+		}
+		db.AutoMigrate(&model.Org{})
+		return nil
+	} else {
+		return errors.New("dns not found")
+	}
+}
+
 func main() {
+	err := dbInit()
+	if err != nil {
+		println(err)
+		return
+	}
+
 	server := gin.Default()
 
 	handler.Init(server.RouterGroup)
