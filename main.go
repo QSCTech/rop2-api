@@ -1,13 +1,20 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"rop2-api/handler"
+
+	"github.com/gin-gonic/gin"
+)
 
 func main() {
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
+	server := gin.Default()
+
+	handler.Init(server.RouterGroup)
+
+	//仅供测试连通性
+	server.GET("/ping", func(c *gin.Context) {
+		c.String(200, "pong")
 	})
-	r.Run("127.0.0.1:8080") // listen and serve on 0.0.0.0:8080
+
+	server.Run("127.0.0.1:8080") // listen and serve on 127.0.0.1:8080
 }
