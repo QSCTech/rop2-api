@@ -5,6 +5,6 @@ import (
 )
 
 func Init(routerGroup gin.RouterGroup) {
-	orgRoute := routerGroup.Group("/org")
+	orgRoute := routerGroup.Group("/")
 	orgInit(*orgRoute)
 }

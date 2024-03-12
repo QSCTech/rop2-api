@@ -1,19 +1,41 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Org struct {
 	Id       uint32    `gorm:"primaryKey;autoIncrement;<-:false"`
-	Name     string    `gorm:"not null;type:char(100)"`
+	Name     string    `gorm:"not null"`
 	CreateAt time.Time `gorm:"not null;autoCreateTime"`
 
-	DefaultDepart uint32 `gorm:"not null;default:0"` //default:0保证不存在对应的depart 插入后需立即设置为有效的默认部门
+	DefaultDepart uint32 `gorm:"uniqueIndex"`
 }
 
 type Depart struct {
 	Id       uint32    `gorm:"primaryKey;autoIncrement;<-:false"`
-	Name     string    `gorm:"not null;type:char(100)"`
+	Name     string    `gorm:"not null"`
 	CreateAt time.Time `gorm:"not null;autoCreateTime"`
-	OrgId    uint32    `gorm:"not null"` //外键命名约定
-	Org      Org
+
+	Parent uint32 `gorm:"not null"`
+}
+
+func GetOrg(id uint32) *Org {
+	var pobj = &Org{}
+	result := db.First(pobj, id)
+	if result.Error != nil {
+		return nil
+	} else {
+		return pobj
+	}
+}
+
+func GetDepart(id uint32) *Depart {
+	var pobj = &Depart{}
+	result := db.First(pobj, id)
+	if result.Error != nil {
+		return nil
+	} else {
+		return pobj
+	}
 }
