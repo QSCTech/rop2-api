@@ -10,7 +10,7 @@ func BadRequest(ctx *gin.Context, message string) {
 
 type J map[string]any
 
-func JSON(ctx *gin.Context, data J) {
+func JSON(ctx *gin.Context, data any) {
 	ctx.PureJSON(200, data)
 }
 

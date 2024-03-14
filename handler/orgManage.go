@@ -17,11 +17,11 @@ func getOrgInfo(ctx *gin.Context) {
 		if id64, err := strconv.ParseUint(id, 10, 32); err == nil {
 			id32 := uint32(id64)
 			org := model.GetOrg(id32)
-			//TODO 鉴权级别1
 			if org == nil {
 				utils.JSON(ctx, utils.J{})
 			} else {
-				//TODO 返回org信息
+				//TODO 鉴权 需要在该组织为管理
+				utils.JSON(ctx, org)
 			}
 		} else {
 			utils.BadRequest(ctx, "缺少id")
