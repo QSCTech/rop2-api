@@ -2,7 +2,6 @@ package handler
 
 import (
 	"rop2-api/model"
-	"rop2-api/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -18,15 +17,15 @@ func getOrgInfo(ctx *gin.Context) {
 			id32 := uint32(id64)
 			org := model.GetOrg(id32)
 			if org == nil {
-				utils.JSON(ctx, utils.J{})
+				ctx.PureJSON(204, gin.H{})
 			} else {
 				//TODO 鉴权 需要在该组织为管理
-				utils.JSON(ctx, org)
+				ctx.PureJSON(200, *org)
 			}
 		} else {
-			utils.BadRequest(ctx, "缺少id")
+			ctx.AbortWithStatus(400)
 		}
 	} else {
-		utils.BadRequest(ctx, "缺少id")
+		ctx.AbortWithStatus(400)
 	}
 }

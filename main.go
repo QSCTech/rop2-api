@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"rop2-api/handler"
 	"rop2-api/model"
 
@@ -8,16 +9,20 @@ import (
 )
 
 func main() {
+	//本地测试用
+	os.Setenv("ROP2_DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&parseTime=true")
+
 	model.Init()
 	model.ResetDb()
 
 	server := gin.Default()
 	server.SetTrustedProxies(nil)
 
-	handler.Init(server.RouterGroup)
+	rootRouter := server.RouterGroup
+	handler.Init(rootRouter)
 
 	//仅供测试连通性
-	server.GET("/ping", func(c *gin.Context) {
+	rootRouter.GET("/ping", func(c *gin.Context) {
 		c.String(200, "pong")
 	})
 

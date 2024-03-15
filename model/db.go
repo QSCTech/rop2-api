@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"rop2-api/utils"
 	"strings"
 
 	"gorm.io/driver/mysql"
@@ -50,7 +51,7 @@ func ResetDb() {
 	db.Exec(fkBuilder("departs", "parent", "orgs", "id", restrict))         //删除组织前需删除所有部门
 	db.Exec(fkBuilder("orgs", "default_depart", "departs", "id", restrict)) //默认部门绑定后不能删除
 	db.Exec(fkBuilder("forms", "owner", "orgs", "id", restrict))            //删除组织前需删除所有表单
-	db.Exec(fkBuilder("users", "at", "orgs", "id", cascade))                //删除组织时自动删除所有管理
+	db.Exec(fkBuilder("users", "at", "orgs", "id", cascade))                //删除组织时自动删除所有管理员
 
 	testOrg := &Org{
 		Name: "测试组织",
@@ -65,6 +66,16 @@ func ResetDb() {
 
 	testOrg.DefaultDepart = testOrgDefaultDepart.Id
 	db.Save(&testOrg)
+
+	testUser := &User{
+		ZjuId:    "__N/A__",
+		Nickname: "测试用户",
+		At:       testOrg.Id,
+		Perm: utils.Stringify(PermMap{
+			(testOrgDefaultDepart.Id): Maintainer,
+		}),
+	}
+	db.Select("ZjuId", "Nickname", "At", "Perm").Create(&testUser)
 
 	//TODO 考虑是否删除测试数据
 }
