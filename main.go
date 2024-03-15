@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"rop2-api/handler"
 	"rop2-api/model"
 
@@ -9,9 +8,6 @@ import (
 )
 
 func main() {
-	//本地测试用
-	os.Setenv("ROP2_DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&parseTime=true")
-
 	model.Init()
 	model.ResetDb()
 

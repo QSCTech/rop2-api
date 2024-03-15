@@ -1,9 +1,7 @@
 package model
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"rop2-api/utils"
 	"strings"
 
@@ -14,16 +12,12 @@ import (
 var db *gorm.DB
 
 func Init() {
-	if dsn, ok := os.LookupEnv("ROP2_DSN"); ok {
-		var err error
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-			DisableForeignKeyConstraintWhenMigrating: true,
-		})
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		panic(errors.New("dsn not found"))
+	var err error
+	db, err = gorm.Open(mysql.Open(utils.DSN), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
+	if err != nil {
+		panic(err)
 	}
 }
 
