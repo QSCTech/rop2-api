@@ -70,51 +70,51 @@ type RequireAuthOptions struct {
 // 同时，如果有效token签发时间已经超过一个阙值，则在header提供一个新的token
 func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	//subCode不小于0，不大于999
-	code401 := func(subCode int32) *utils.ErrCodeObj {
-		return utils.CodeObj(401, subCode)
+	code401 := func(message string, subCode int) (int, *utils.CodeMessageObj) {
+		return utils.Message(message, 401, subCode)
 	}
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("rop-token")
 		parts := strings.Split(token, " ")
 		if len(parts) != 2 {
-			ctx.AbortWithStatusJSON(401, code401(1)) //格式无效
+			ctx.AbortWithStatusJSON(code401("token无法识别", 1))
 			return
 		}
 
-		defer func() {
+		defer func() { //捕获base64编码错误
 			if err := recover(); err != nil {
 				switch err.(type) {
 				case base64.CorruptInputError:
-					ctx.AbortWithStatusJSON(401, code401(2)) //base64编码无效
+					ctx.AbortWithStatusJSON(code401("token编码无效", 2))
 				default:
 					panic(err)
 				}
 			}
-		}() //捕获base64编码错误
+		}()
 		bArr := utils.MapArray(parts, func(part string, i int) []byte { return utils.Base64Decode(part) })
 		jsonBytes, signBytes := bArr[0], bArr[1]
 
 		now := utils.ToRelTimestamp(time.Now())
 		iden := &UserIdentity{}
 		if err := jsoniter.ConfigFastest.Unmarshal(jsonBytes, &iden); err != nil {
-			ctx.AbortWithStatusJSON(401, code401(3)) //反序列化失败
+			ctx.AbortWithStatusJSON(code401("token反序列化失败", 3))
 			return
 		}
 		if iden.Exp <= now {
-			ctx.AbortWithStatusJSON(401, code401(11)) //过期（还未验签）
+			ctx.AbortWithStatusJSON(code401("token已过期", 11))
 			return
 		}
 
 		validSign := utils.HmacSha256(jsonBytes, utils.IdentityKey)
 		if !bytes.Equal(validSign, signBytes) {
-			ctx.AbortWithStatusJSON(401, code401(21)) //验签失败
+			ctx.AbortWithStatusJSON(code401("token验签失败", 21))
 			return
 		}
 
 		if voidArray, exists := voidMap[iden.ZjuId]; exists {
 			for _, v := range voidArray {
 				if v.needVoid(iden) {
-					ctx.AbortWithStatusJSON(401, code401(31)) //已被登出
+					ctx.AbortWithStatusJSON(code401("已退出登录", 31))
 					return
 				}
 			}
@@ -168,13 +168,13 @@ func login(ctx *gin.Context) {
 func logout(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(*UserIdentity)
 	addVoidInfo(id.ZjuId, voidOne{iat: id.Iat})
-	ctx.PureJSON(200, utils.CodeObj())
+	ctx.PureJSON(utils.Success())
 }
 
 func logoutAll(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(*UserIdentity)
 	addVoidInfo(id.ZjuId, voidBefore{before: utils.ToRelTimestamp(time.Now())})
-	ctx.PureJSON(200, utils.CodeObj())
+	ctx.PureJSON(utils.Success())
 }
 
 func addVoidInfo(zjuId string, info voidInfo) {

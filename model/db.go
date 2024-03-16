@@ -15,6 +15,7 @@ func Init() {
 	var err error
 	db, err = gorm.Open(mysql.Open(utils.DSN), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
+		TranslateError:                           true,
 	})
 	if err != nil {
 		panic(err)
@@ -48,9 +49,9 @@ func ResetDb() {
 		return strings.Join(lines, "\n")
 	}
 	const restrict, cascade, setNull = "RESTRICT", "CASCADE", "SET NULL"
-	db.Exec(fkBuilder("departs", "parent", "orgs", "id", restrict))         //删除组织前需删除所有部门
-	db.Exec(fkBuilder("orgs", "default_depart", "departs", "id", restrict)) //默认部门绑定后不能删除
-	db.Exec(fkBuilder("forms", "owner", "orgs", "id", restrict))            //删除组织前需删除所有表单
+	db.Exec(fkBuilder("departs", "parent", "orgs", "id", cascade))          //删除组织时自动删除所有部门
+	db.Exec(fkBuilder("orgs", "default_depart", "departs", "id", restrict)) //默认部门不能删除（只能随组织一起删除）
+	db.Exec(fkBuilder("forms", "owner", "orgs", "id", cascade))             //删除组织时自动删除所有表单
 	db.Exec(fkBuilder("users", "at", "orgs", "id", cascade))                //删除组织时自动删除所有管理员
 
 	TestOrg = &Org{
