@@ -28,7 +28,7 @@ const (
 
 // 检查权限级别是否有效(授权时使用)
 func IsValidLevel(level PermLevel, granterLevel PermLevel) bool {
-	return level >= Observer && level <= Maintainer && level%100 == 0 && level < granterLevel
+	return level >= Observer && level <= Maintainer && level%100 == 0 && level <= granterLevel
 }
 
 // 部门-权限的映射表
@@ -52,4 +52,14 @@ func ParsePerm(perm string) (result PermMap) {
 func GetLevel(permMap PermMap, departId uint32, defaultDepartId uint32) PermLevel {
 	defaultDepPerm, depPerm := permMap[defaultDepartId], permMap[departId] //不存在默认为0
 	return max(defaultDepPerm, depPerm)
+}
+
+func GetUser(zjuId string, at uint32) *User {
+	var pobj = &User{}
+	result := db.First(pobj, "zju_id = ? AND at = ?", zjuId, at)
+	if result.Error != nil {
+		return nil
+	} else {
+		return pobj
+	}
 }

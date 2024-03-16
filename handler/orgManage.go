@@ -2,30 +2,21 @@ package handler
 
 import (
 	"rop2-api/model"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-func orgInit(routerGroup gin.RouterGroup) {
-	routerGroup.GET("org", getOrgInfo)
+func orgInit(routerGroup *gin.RouterGroup) {
+	routerGroup.GET("org", AuthWithRefresh(true), getOrgInfo)
 }
 
+// 返回登录所在组织的信息
 func getOrgInfo(ctx *gin.Context) {
-	if id, exist := ctx.GetQuery("id"); exist {
-		if id64, err := strconv.ParseUint(id, 10, 32); err == nil {
-			id32 := uint32(id64)
-			org := model.GetOrg(id32)
-			if org == nil {
-				ctx.PureJSON(204, gin.H{})
-			} else {
-				//TODO 鉴权 需要在该组织为管理
-				ctx.PureJSON(200, *org)
-			}
-		} else {
-			ctx.AbortWithStatus(400)
-		}
+	id := ctx.MustGet("identity").(*UserIdentity)
+	org := model.GetOrg(id.At)
+	if org == nil {
+		ctx.PureJSON(204, gin.H{})
 	} else {
-		ctx.AbortWithStatus(400)
+		ctx.PureJSON(200, org)
 	}
 }

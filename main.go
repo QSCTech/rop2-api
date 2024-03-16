@@ -3,18 +3,21 @@ package main
 import (
 	"rop2-api/handler"
 	"rop2-api/model"
+	"rop2-api/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	utils.Init() //读取配置
+
 	model.Init()
 	model.ResetDb()
 
 	server := gin.Default()
 	server.SetTrustedProxies(nil)
 
-	rootRouter := server.RouterGroup
+	rootRouter := &server.RouterGroup
 	handler.Init(rootRouter)
 
 	//仅供测试连通性

@@ -4,9 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Init(routerGroup gin.RouterGroup) {
-	authInit()
+func Init(routerGroup *gin.RouterGroup) {
+	authInit(routerGroup)
 
-	orgRoute := routerGroup.Group("/")
-	orgInit(*orgRoute)
+	orgInit(routerGroup)
 }

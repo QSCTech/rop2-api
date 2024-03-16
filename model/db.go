@@ -21,6 +21,12 @@ func Init() {
 	}
 }
 
+var (
+	TestOrg              *Org
+	TestOrgDefaultDepart *Depart
+	TestUser             *User
+)
+
 // 删除并重建数据库结构
 func ResetDb() {
 	db.Exec("DROP DATABASE IF EXISTS rop2;")
@@ -47,29 +53,29 @@ func ResetDb() {
 	db.Exec(fkBuilder("forms", "owner", "orgs", "id", restrict))            //删除组织前需删除所有表单
 	db.Exec(fkBuilder("users", "at", "orgs", "id", cascade))                //删除组织时自动删除所有管理员
 
-	testOrg := &Org{
+	TestOrg = &Org{
 		Name: "测试组织",
 	}
-	db.Select("Name").Create(&testOrg)
+	db.Select("Name").Create(&TestOrg)
 
-	testOrgDefaultDepart := &Depart{
+	TestOrgDefaultDepart = &Depart{
 		Name:   "默认部门",
-		Parent: testOrg.Id,
+		Parent: TestOrg.Id,
 	}
-	db.Select("Name", "Parent").Create(testOrgDefaultDepart)
+	db.Select("Name", "Parent").Create(TestOrgDefaultDepart)
 
-	testOrg.DefaultDepart = testOrgDefaultDepart.Id
-	db.Save(&testOrg)
+	TestOrg.DefaultDepart = TestOrgDefaultDepart.Id
+	db.Save(&TestOrg)
 
-	testUser := &User{
+	TestUser = &User{
 		ZjuId:    "__N/A__",
 		Nickname: "测试用户",
-		At:       testOrg.Id,
+		At:       TestOrg.Id,
 		Perm: utils.Stringify(PermMap{
-			(testOrgDefaultDepart.Id): Maintainer,
+			(TestOrgDefaultDepart.Id): Maintainer,
 		}),
 	}
-	db.Select("ZjuId", "Nickname", "At", "Perm").Create(&testUser)
+	db.Select("ZjuId", "Nickname", "At", "Perm").Create(&TestUser)
 
 	//TODO 考虑是否删除测试数据
 }
