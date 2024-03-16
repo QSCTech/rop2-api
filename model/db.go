@@ -26,6 +26,7 @@ var (
 	TestOrg              *Org
 	TestOrgDefaultDepart *Depart
 	TestUser             *User
+	TestForm             *Form
 )
 
 // 删除并重建数据库结构
@@ -34,7 +35,7 @@ func ResetDb() {
 	db.Exec("CREATE DATABASE rop2;")
 	db.Exec("USE rop2;")
 	migrator := db.Migrator()
-	migrator.AutoMigrate(&Org{}, &Depart{}, &Form{}, &User{})
+	migrator.AutoMigrate(&Org{}, &Depart{}, &User{}, &Form{})
 
 	//建表完成，添加外键
 	fkBuilder := func(thisTable, thisCol, refTable, refCol, onDelete string) string {
@@ -57,7 +58,7 @@ func ResetDb() {
 	TestOrg = &Org{
 		Name: "测试组织",
 	}
-	db.Select("Name").Create(&TestOrg)
+	db.Select("Name").Create(TestOrg)
 
 	TestOrgDefaultDepart = &Depart{
 		Name:   "默认部门",
@@ -66,7 +67,7 @@ func ResetDb() {
 	db.Select("Name", "Parent").Create(TestOrgDefaultDepart)
 
 	TestOrg.DefaultDepart = TestOrgDefaultDepart.Id
-	db.Save(&TestOrg)
+	db.Save(TestOrg)
 
 	TestUser = &User{
 		ZjuId:    "__N/A__",
@@ -76,7 +77,15 @@ func ResetDb() {
 			(TestOrgDefaultDepart.Id): Maintainer,
 		}),
 	}
-	db.Select("ZjuId", "Nickname", "At", "Perm").Create(&TestUser)
+	db.Select("ZjuId", "Nickname", "At", "Perm").Create(TestUser)
+
+	TestForm = &Form{
+		Name:     "测试组织2024年春季纳新报名表",
+		Entry:    1,
+		Children: `[{"id":1}]`,
+		Owner:    TestOrg.Id,
+	}
+	db.Select("Name", "Entry", "Children", "Owner").Create(TestForm)
 
 	//TODO 考虑是否删除测试数据
 }

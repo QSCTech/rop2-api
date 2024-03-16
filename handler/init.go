@@ -8,4 +8,5 @@ func Init(routerGroup *gin.RouterGroup) {
 	authInit(routerGroup)
 
 	orgInit(routerGroup)
+	formInit(routerGroup)
 }
