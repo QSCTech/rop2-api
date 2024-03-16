@@ -63,3 +63,11 @@ func GetUser(zjuId string, at uint32) *User {
 		return pobj
 	}
 }
+
+// 检查用户是否在默认部门有足够的权限
+func HasOrgLevel(perm string, orgId uint32, requireLevel PermLevel) bool {
+	org := GetOrg(orgId)
+	permMap := ParsePerm(perm)
+	orgPerm := permMap[org.DefaultDepart]
+	return orgPerm >= requireLevel
+}

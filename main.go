@@ -14,7 +14,9 @@ func main() {
 	model.Init()
 	model.ResetDb()
 
-	server := gin.Default()
+	server := gin.New()
+	server.Use(gin.Logger())
+	server.Use(gin.Recovery())
 	server.SetTrustedProxies(nil)
 
 	rootRouter := &server.RouterGroup

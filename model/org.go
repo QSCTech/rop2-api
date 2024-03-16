@@ -33,8 +33,8 @@ func GetOrg(id uint32) *Org {
 	}
 }
 
-func GetOrgDeparts(orgId uint32) []Depart {
-	result := make([]Depart, 0)
+func GetOrgDeparts(orgId uint32) []*Depart {
+	result := make([]*Depart, 0)
 	db.Select("Id", "Name", "CreateAt").Find(&result, "parent = ?", orgId)
 	return result
 }
@@ -65,8 +65,16 @@ func CreateDepart(orgId uint32, name string) bool {
 	return true
 }
 
-func DeleteDepart(id uint32) {
-	db.Delete(&Depart{}, id)
+func DeleteDepart(id uint32) bool {
+	result := db.Delete(&Depart{}, id)
+	if err := result.Error; err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			//默认部门受外键约束不能删除
+			return false
+		}
+		panic(err)
+	}
+	return true
 }
 
 func RenameDepart(id uint32, newName string) bool {

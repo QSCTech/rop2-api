@@ -61,10 +61,6 @@ func (info voidBefore) needVoid(status *UserIdentity) bool {
 	return status.Iat <= info.before
 }
 
-type RequireAuthOptions struct {
-	AllowRefresh bool
-}
-
 // 中间件，要求用户必须登录才能访问API。
 // 用户信息(UserIdentity类型)存至ctx.Keys["identity"]。
 // 同时，如果有效token签发时间已经超过一个阙值，则在header提供一个新的token
