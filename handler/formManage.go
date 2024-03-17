@@ -26,7 +26,7 @@ func getFormList(ctx *gin.Context) {
 	ctx.PureJSON(200, model.GetForms(orgId))
 }
 
-// 获取表单详情，返回全部信息
+// 获取单个表单详情，返回全部信息
 func getFormDetail(ctx *gin.Context) {
 	iden := ctx.MustGet("identity").(*UserIdentity)
 	orgId := iden.At
@@ -77,7 +77,7 @@ func editForm(ctx *gin.Context) {
 
 	iter := jsoniter.Parse(jsoniter.ConfigFastest, ctx.Request.Body, 256)
 	matched := false
-	var timePointer *time.Time
+	var timePointer **time.Time
 	for field := iter.ReadObject(); field != ""; field = iter.ReadObject() {
 		switch field {
 		case "name":
@@ -107,7 +107,7 @@ func editForm(ctx *gin.Context) {
 				ctx.AbortWithStatusJSON(utils.Message("时间转换失败", 400, 12))
 				return
 			}
-			*timePointer = newTime
+			*timePointer = &newTime
 		case "children":
 			form.Children = iter.ReadString()
 		}

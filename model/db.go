@@ -26,6 +26,7 @@ var (
 	TestOrg              *Org
 	TestOrgDefaultDepart *Depart
 	TestUser             *User
+	TestStage            *Stage
 	TestForm             *Form
 )
 
@@ -35,9 +36,10 @@ func ResetDb() {
 	db.Exec("CREATE DATABASE rop2;")
 	db.Exec("USE rop2;")
 	migrator := db.Migrator()
-	migrator.AutoMigrate(&Org{}, &Depart{}, &User{}, &Form{})
+	migrator.AutoMigrate(&Org{}, &Depart{}, &User{}, &Stage{}, &Form{}, &Candidate{})
 
 	//建表完成，添加外键
+	const restrict, cascade, setNull = "RESTRICT", "CASCADE", "SET NULL"
 	fkBuilder := func(thisTable, thisCol, refTable, refCol, onDelete string) string {
 		lines := []string{
 			fmt.Sprintf("ALTER TABLE `%s`", thisTable),
@@ -49,11 +51,22 @@ func ResetDb() {
 		}
 		return strings.Join(lines, "\n")
 	}
-	const restrict, cascade, setNull = "RESTRICT", "CASCADE", "SET NULL"
+
 	db.Exec(fkBuilder("departs", "parent", "orgs", "id", cascade))          //删除组织时自动删除所有部门
 	db.Exec(fkBuilder("orgs", "default_depart", "departs", "id", restrict)) //默认部门不能删除（只能随组织一起删除）
-	db.Exec(fkBuilder("forms", "owner", "orgs", "id", cascade))             //删除组织时自动删除所有表单
-	db.Exec(fkBuilder("users", "at", "orgs", "id", cascade))                //删除组织时自动删除所有管理员
+
+	db.Exec(fkBuilder("users", "at", "orgs", "id", cascade)) //删除组织时自动删除所有管理员
+
+	db.Exec(fkBuilder("stages", "owner", "orgs", "id", cascade))  //删除组织时自动删除所有阶段
+	db.Exec(fkBuilder("stages", "next", "stages", "id", setNull)) //删除阶段时，清除next绑定
+
+	db.Exec(fkBuilder("forms", "owner", "orgs", "id", cascade))    //删除组织时自动删除所有表单
+	db.Exec(fkBuilder("forms", "enter", "stages", "id", restrict)) //删除阶段时不能有表单绑定在其上
+
+	db.Exec(fkBuilder("candidates", "of", "departs", "id", cascade))   //删除组织时，移除所有候选人
+	db.Exec(fkBuilder("candidates", "form", "forms", "id", cascade))   //删除表单时，移除所有候选人
+	db.Exec(fkBuilder("candidates", "stage", "stages", "id", cascade)) //删除阶段时，移除所有候选人
+	db.Exec(fkBuilder("candidates", "gone", "candidates", "id", setNull))
 
 	TestOrg = &Org{
 		Name: "测试组织",
@@ -79,13 +92,21 @@ func ResetDb() {
 	}
 	db.Select("ZjuId", "Nickname", "At", "Perm").Create(TestUser)
 
+	TestStage = &Stage{
+		Name:  "填表",
+		Owner: TestOrg.Id,
+		Tasks: "[]",
+	}
+	db.Select("Name", "Owner", "Tasks").Create(TestStage)
+
 	TestForm = &Form{
 		Name:     "测试组织2024年春季纳新报名表",
 		Entry:    1,
 		Children: `[{"id":1}]`,
 		Owner:    TestOrg.Id,
+		Enter:    TestStage.Id,
 	}
-	db.Select("Name", "Entry", "Children", "Owner").Create(TestForm)
+	db.Select("Name", "Entry", "Children", "Owner", "Enter").Create(TestForm)
 
 	//TODO 考虑是否删除测试数据
 }
