@@ -17,12 +17,12 @@ import (
 // 包含zjuid at nickname perm等信息
 // 使用签名(不在结构内)保证权威性
 type UserIdentity struct {
-	Iat      uint32 `json:"iat"` //签发时间，相对时间戳
-	Exp      uint32 `json:"exp"` //过期时间，相对时间戳
-	ZjuId    string `json:"zjuId"`
-	At       uint32 `json:"at"`       //登录组织id
-	Nickname string `json:"nickname"` //组织内昵称
-	Perm     string `json:"perm"`     //部门权限json
+	Iat      time.Time `json:"iat"` //签发时间
+	Exp      time.Time `json:"exp"` //过期时间
+	ZjuId    string    `json:"zjuId"`
+	At       uint32    `json:"at"`       //登录组织id
+	Nickname string    `json:"nickname"` //组织内昵称
+	Perm     string    `json:"perm"`     //部门权限json
 }
 
 type voidInfo interface {
@@ -35,12 +35,12 @@ var voidMap map[string][]voidInfo = make(map[string][]voidInfo)
 
 // 主动退出某处登录，使特定签发时间的token失效
 type voidOne struct {
-	iat uint32
+	iat time.Time
 }
 
 func (info voidOne) needKeep(now time.Time) bool {
-	const secGap = 30 //保证此失效记录完全覆盖有效期的小间隙
-	return utils.ToRelTimestamp(now) > info.iat+utils.TokenDuration+secGap
+	const secGap = 5 * time.Second //保证此失效记录完全覆盖有效期的小间隙
+	return info.iat.Add(utils.TokenDuration).Add(secGap).Compare(now) >= 0
 }
 
 func (info voidOne) needVoid(status *UserIdentity) bool {
@@ -49,16 +49,16 @@ func (info voidOne) needVoid(status *UserIdentity) bool {
 
 // 退出所有登录，使签发时间小于某个点的token全部失效
 type voidBefore struct {
-	before uint32
+	before time.Time
 }
 
 func (info voidBefore) needKeep(now time.Time) bool {
-	const secGap = 30 //保证此失效记录完全覆盖有效期的小间隙
-	return utils.ToRelTimestamp(now) > info.before+utils.TokenDuration+secGap
+	const secGap = 5 * time.Second //保证此失效记录完全覆盖有效期的小间隙
+	return info.before.Add(utils.TokenDuration).Add(secGap).Compare(now) >= 0
 }
 
 func (info voidBefore) needVoid(status *UserIdentity) bool {
-	return status.Iat <= info.before
+	return info.before.Compare(status.Iat) >= 0
 }
 
 // 中间件，要求用户必须登录才能访问API。
@@ -90,13 +90,13 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 		bArr := utils.MapArray(parts, func(part string, i int) []byte { return utils.Base64Decode(part) })
 		jsonBytes, signBytes := bArr[0], bArr[1]
 
-		now := utils.ToRelTimestamp(time.Now())
+		now := time.Now()
 		iden := &UserIdentity{}
 		if err := jsoniter.ConfigFastest.Unmarshal(jsonBytes, &iden); err != nil {
 			ctx.AbortWithStatusJSON(code401("token反序列化失败", 3))
 			return
 		}
-		if iden.Exp <= now {
+		if now.Compare(iden.Exp) >= 0 {
 			ctx.AbortWithStatusJSON(code401("token已过期", 11))
 			return
 		}
@@ -116,8 +116,8 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 			}
 		}
 
-		//确认token有效
-		if allowRefresh && now >= iden.Iat+utils.TokenRefreshAfter {
+		//已确认token有效
+		if allowRefresh && now.Compare(iden.Iat.Add(utils.TokenRefreshAfter)) >= 0 {
 			//如果token已经过了一定时间，提供新的token
 			ctx.Header("rop-refresh-token", newToken(&model.User{
 				ZjuId:    iden.ZjuId,
@@ -134,10 +134,10 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 
 // 内部方法，生成一个新token
 func newToken(user *model.User) string {
-	iat := utils.ToRelTimestamp(time.Now())
+	iat := time.Now()
 	iden := &UserIdentity{
 		Iat:      iat,
-		Exp:      iat + utils.TokenDuration,
+		Exp:      iat.Add(utils.TokenDuration),
 		ZjuId:    user.ZjuId,
 		At:       user.At,
 		Nickname: user.Nickname,
@@ -156,9 +156,8 @@ func newToken(user *model.User) string {
 
 func login(ctx *gin.Context) {
 	//TODO 测试用，直接登录
-	ctx.PureJSON(200, gin.H{
-		"token": newToken(model.TestUser),
-	})
+	ctx.Header("rop-refresh-token", newToken(model.TestUser))
+	ctx.PureJSON(utils.Success())
 }
 
 func logout(ctx *gin.Context) {
@@ -169,7 +168,7 @@ func logout(ctx *gin.Context) {
 
 func logoutAll(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(*UserIdentity)
-	addVoidInfo(id.ZjuId, voidBefore{before: utils.ToRelTimestamp(time.Now())})
+	addVoidInfo(id.ZjuId, voidBefore{before: time.Now()})
 	ctx.PureJSON(utils.Success())
 }
 

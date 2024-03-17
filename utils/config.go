@@ -9,9 +9,8 @@ import (
 var (
 	DSN string
 
-	TimeOffset        int64  = 1704038400                  //所有相对时间戳的起点，相对Unix时间戳的起点，所偏移的秒数
-	TokenDuration     uint32 = 60 * 60 * 8                 //token的有效秒数，无操作相应时间后失效
-	TokenRefreshAfter uint32 = min(TokenDuration/25, 60*5) //自动刷新token需经过的时间
+	TokenDuration     time.Duration = 60 * 60 * 8 * time.Second
+	TokenRefreshAfter time.Duration = min(TokenDuration/25, 60*5) * time.Second //自动刷新token需经过的时间
 
 	IdentityKey []byte
 )
