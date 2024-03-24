@@ -33,12 +33,12 @@ func Base64Encode(from []byte) string {
 	return base64.RawStdEncoding.EncodeToString(from)
 }
 
-func Base64Decode(from string) []byte {
+func Base64Decode(from string) ([]byte, error) {
 	result, err := base64.RawStdEncoding.DecodeString(from)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return result
+	return result, nil
 }
 
 // 类似js的map工具方法。

@@ -21,7 +21,8 @@ type Stage struct {
 }
 
 const (
-	Invalid  StepType = -2 //已失效，不发送拒信的已拒绝
-	Rejected StepType = -1 //已拒绝
-	Applied  StepType = 0  //已填表，下一阶段为“第一阶段”
+	Invalid  StepType = -2  //已失效，不发送拒信的已拒绝
+	Rejected StepType = -1  //已拒绝
+	Accepted StepType = -50 //已录取
+	Applied  StepType = 0   //已填表，下一阶段为“第一阶段”
 )

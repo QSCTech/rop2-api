@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"rop2-api/model"
 	"rop2-api/utils"
@@ -44,7 +43,7 @@ func (info voidOne) needKeep(now time.Time) bool {
 }
 
 func (info voidOne) needVoid(status *AdminIdentity) bool {
-	return status.Iat == info.iat
+	return status.Iat.Sub(info.iat).Abs() <= 2*time.Second
 }
 
 // 退出所有登录，使签发时间小于某个点的token全部失效
@@ -77,17 +76,18 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 			return
 		}
 
-		defer func() { //捕获base64编码错误
-			if err := recover(); err != nil {
-				switch err.(type) {
-				case base64.CorruptInputError:
-					ctx.AbortWithStatusJSON(code401("token编码无效", 2))
-				default:
-					panic(err)
-				}
+		var err error
+		bArr := utils.MapArray(parts, func(part string, i int) []byte {
+			result, newErr := utils.Base64Decode(part)
+			if newErr != nil {
+				err = newErr
 			}
-		}()
-		bArr := utils.MapArray(parts, func(part string, i int) []byte { return utils.Base64Decode(part) })
+			return result
+		})
+		if err != nil {
+			ctx.AbortWithStatusJSON(code401("token编码无效", 2))
+			return
+		}
 		jsonBytes, signBytes := bArr[0], bArr[1]
 
 		now := time.Now()
@@ -155,7 +155,8 @@ func newToken(user *model.Admin) string {
 }
 
 func adminLogin(ctx *gin.Context) {
-	//TODO 测试用，直接登录
+	//TODO 测试中，无检验直接登录
+	//需要提供管理员zjuid和组织id
 	type Arg struct {
 		ZjuId string `json:"zju_id"`
 		At    uint32 `json:"at"`

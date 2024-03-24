@@ -55,20 +55,38 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) {
 			return
 		}
 		//一些默认文本可能需要修改
-		defaultRejectTemplate := &Template{
-			Owner:   org.Id,
-			Name:    "默认拒信",
-			Content: "很遗憾，您未能成功加入{组织}。",
-		}
+		defaultRejectTemplate, defaultAcceptTemplate :=
+			&Template{
+				Owner:   org.Id,
+				Name:    "默认拒信",
+				Content: "很遗憾，您未能成功加入{组织}。",
+			},
+			&Template{
+				Owner:   org.Id,
+				Name:    "默认录取通知",
+				Content: "感谢您参与{表单}，您已成功加入{组织}。",
+			}
 		if err = tx.Select("Owner", "Name", "Content").Create(defaultRejectTemplate).Error; err != nil {
 			return
 		}
-		defaultRejectStage := &Stage{
-			Owner:   org.DefaultDepart,
-			Step:    Rejected,
-			OnEnter: &defaultRejectTemplate.Id,
+		if err = tx.Select("Owner", "Name", "Content").Create(defaultAcceptTemplate).Error; err != nil {
+			return
 		}
+		defaultRejectStage, defaultAcceptStage :=
+			&Stage{
+				Owner:   org.DefaultDepart,
+				Step:    Rejected,
+				OnEnter: &defaultRejectTemplate.Id,
+			},
+			&Stage{
+				Owner:   org.DefaultDepart,
+				Step:    Accepted,
+				OnEnter: &defaultAcceptTemplate.Id,
+			}
 		if err = tx.Select("Owner", "Step", "OnEnter").Create(defaultRejectStage).Error; err != nil {
+			return
+		}
+		if err = tx.Select("Owner", "Step", "OnEnter").Create(defaultAcceptStage).Error; err != nil {
 			return
 		}
 
