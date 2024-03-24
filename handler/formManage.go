@@ -19,7 +19,7 @@ func formInit(routerGroup *gin.RouterGroup) {
 
 // 获取表单列表，只有简略信息：id,name,start/endAt,create/updateAt
 func getFormList(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*UserIdentity)
+	iden := ctx.MustGet("identity").(*AdminIdentity)
 	orgId := iden.At
 
 	//不考虑分批查询，一次查询并返回
@@ -28,7 +28,7 @@ func getFormList(ctx *gin.Context) {
 
 // 获取单个表单详情，返回全部信息
 func getFormDetail(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*UserIdentity)
+	iden := ctx.MustGet("identity").(*AdminIdentity)
 	orgId := iden.At
 
 	type Arg struct {
@@ -52,9 +52,9 @@ func getFormDetail(ctx *gin.Context) {
 
 // 编辑表单，query传入id，body为json包含要编辑的字段和新值
 func editForm(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*UserIdentity)
+	iden := ctx.MustGet("identity").(*AdminIdentity)
 
-	if !model.HasOrgLevel(iden.Perm, iden.At, model.Insepector) {
+	if iden.Level < model.Maintainer {
 		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
 		return
 	}

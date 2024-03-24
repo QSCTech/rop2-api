@@ -9,15 +9,15 @@ import (
 
 type Depart struct {
 	Id       uint32    `json:"id" gorm:"primaryKey;autoIncrement;<-:false"`
-	Name     string    `json:"name" gorm:"type:varchar(80);not null;uniqueIndex:uni_name_parent"` //部门名称，须在组织内唯一
+	Name     string    `json:"name" gorm:"type:varchar(80);not null;uniqueIndex:uni_name_owner"` //部门名称，须在组织内唯一
 	CreateAt time.Time `json:"createAt" gorm:"not null;autoCreateTime"`
 
-	Parent uint32 `json:"parent" gorm:"not null;uniqueIndex:uni_name_parent"` //归属组织id
+	Owner uint32 `json:"owner" gorm:"not null;uniqueIndex:uni_name_owner"` //归属组织id
 }
 
 func GetOrgDeparts(orgId uint32) []*Depart {
 	result := make([]*Depart, 0)
-	db.Select("Id", "Name", "CreateAt").Find(&result, "parent = ?", orgId)
+	db.Select("Id", "Name", "CreateAt").Find(&result, "owner = ?", orgId)
 	return result
 }
 
@@ -31,20 +31,20 @@ func GetDepart(id uint32) *Depart {
 	}
 }
 
-func CreateDepart(orgId uint32, name string) bool {
+func CreateDepart(orgId uint32, name string) (bool, *Depart) {
 	d := &Depart{
-		Name:   name,
-		Parent: orgId,
+		Name:  name,
+		Owner: orgId,
 	}
-	result := db.Select("Name", "Parent").Create(d)
+	result := db.Select("Name", "owner").Create(d)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-			return false
+			return false, nil
 		} else {
 			panic(result.Error)
 		}
 	}
-	return true
+	return true, d
 }
 
 func DeleteDepart(id uint32) bool {

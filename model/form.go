@@ -8,7 +8,6 @@ type Form struct {
 	Desc     string `json:"desc"`
 	Entry    uint32 `json:"entry" gorm:"not null"`
 	Children string `json:"children" gorm:"not null;type:json"`
-	Enter    uint32 `json:"enter" gorm:"not null"`
 
 	StartAt *time.Time `json:"startAt"` //可空
 	EndAt   *time.Time `json:"endAt"`   //可空

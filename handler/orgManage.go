@@ -17,7 +17,7 @@ func orgInit(routerGroup *gin.RouterGroup) {
 
 // 获取登录所在组织（含所有部门）的信息
 func getOrgInfo(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(*UserIdentity)
+	id := ctx.MustGet("identity").(*AdminIdentity)
 	//只要能以组织的身份登录，就可查询，对具体权限级别无要求
 	orgId := id.At
 	org := model.GetOrg(orgId)
@@ -33,7 +33,7 @@ func getOrgInfo(ctx *gin.Context) {
 }
 
 func addDepart(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*UserIdentity)
+	iden := ctx.MustGet("identity").(*AdminIdentity)
 	orgId := iden.At
 
 	type AddDepartBody struct {
@@ -50,12 +50,12 @@ func addDepart(ctx *gin.Context) {
 		return
 	}
 
-	if !model.HasOrgLevel(iden.Perm, orgId, model.Maintainer) {
+	if iden.Level < model.Maintainer {
 		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
 		return
 	}
 
-	if model.CreateDepart(orgId, arg.Name) {
+	if ok, _ := model.CreateDepart(orgId, arg.Name); ok {
 		ctx.PureJSON(utils.Success())
 	} else {
 		ctx.AbortWithStatusJSON(utils.Message("部门命名重复", 422, 11))
@@ -63,7 +63,7 @@ func addDepart(ctx *gin.Context) {
 }
 
 func deleteDepart(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*UserIdentity)
+	iden := ctx.MustGet("identity").(*AdminIdentity)
 	orgId := iden.At
 
 	type DeleteDepartBody struct {
@@ -76,13 +76,13 @@ func deleteDepart(ctx *gin.Context) {
 	}
 	depIdToDelete := arg.Id
 
-	if !model.HasOrgLevel(iden.Perm, orgId, model.Maintainer) {
+	if iden.Level < model.Maintainer {
 		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
 		return
 	}
 
 	depToDelete := model.GetDepart(depIdToDelete)
-	if depToDelete == nil || depToDelete.Parent != orgId {
+	if depToDelete == nil || depToDelete.Owner != orgId {
 		ctx.AbortWithStatusJSON(utils.Message("部门不存在", 422, 2))
 		return
 	}
@@ -95,7 +95,7 @@ func deleteDepart(ctx *gin.Context) {
 }
 
 func renameDepart(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*UserIdentity)
+	iden := ctx.MustGet("identity").(*AdminIdentity)
 	orgId := iden.At
 
 	type RenameDepartBody struct {
@@ -115,7 +115,7 @@ func renameDepart(ctx *gin.Context) {
 		return
 	}
 
-	if !model.HasOrgLevel(iden.Perm, orgId, model.Maintainer) {
+	if iden.Level < model.Maintainer {
 		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
 		return
 	}
@@ -123,7 +123,7 @@ func renameDepart(ctx *gin.Context) {
 	//可以重命名默认部门，没有什么作用
 
 	depToRename := model.GetDepart(depIdToRename)
-	if depToRename == nil || depToRename.Parent != orgId {
+	if depToRename == nil || depToRename.Owner != orgId {
 		ctx.AbortWithStatusJSON(utils.Message("部门不存在", 422, 2))
 		return
 	}

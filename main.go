@@ -13,6 +13,7 @@ func main() {
 
 	model.Init()
 	model.ResetDb()
+	model.InitNewOrg("测试组织", "N/A", "测试管理员")
 
 	server := gin.New()
 	server.Use(gin.Logger())

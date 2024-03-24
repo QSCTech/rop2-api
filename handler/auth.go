@@ -16,18 +16,18 @@ import (
 // 凭据：类JWT的base64字符串
 // 包含zjuid at nickname perm等信息
 // 使用签名(不在结构内)保证权威性
-type UserIdentity struct {
-	Iat      time.Time `json:"iat"` //签发时间
-	Exp      time.Time `json:"exp"` //过期时间
-	ZjuId    string    `json:"zjuId"`
-	At       uint32    `json:"at"`       //登录组织id
-	Nickname string    `json:"nickname"` //组织内昵称
-	Perm     string    `json:"perm"`     //部门权限json
+type AdminIdentity struct {
+	Iat      time.Time       `json:"iat"` //签发时间
+	Exp      time.Time       `json:"exp"` //过期时间
+	ZjuId    string          `json:"zjuId"`
+	At       uint32          `json:"at"`       //登录组织id
+	Nickname string          `json:"nickname"` //组织内昵称
+	Level    model.PermLevel `json:"level"`    //部门权限json
 }
 
 type voidInfo interface {
-	needKeep(now time.Time) bool          //检查此时是否还需保留此失效信息
-	needVoid(identity *UserIdentity) bool //检查指定的identity是否因此失效，注意zjuid不需要检查
+	needKeep(now time.Time) bool           //检查此时是否还需保留此失效信息
+	needVoid(identity *AdminIdentity) bool //检查指定的identity是否因此失效，注意zjuid不需要检查
 }
 
 // 由于特定原因导致的zjuid-失效记录的map
@@ -43,7 +43,7 @@ func (info voidOne) needKeep(now time.Time) bool {
 	return info.iat.Add(utils.TokenDuration).Add(secGap).Compare(now) >= 0
 }
 
-func (info voidOne) needVoid(status *UserIdentity) bool {
+func (info voidOne) needVoid(status *AdminIdentity) bool {
 	return status.Iat == info.iat
 }
 
@@ -57,12 +57,12 @@ func (info voidBefore) needKeep(now time.Time) bool {
 	return info.before.Add(utils.TokenDuration).Add(secGap).Compare(now) >= 0
 }
 
-func (info voidBefore) needVoid(status *UserIdentity) bool {
+func (info voidBefore) needVoid(status *AdminIdentity) bool {
 	return info.before.Compare(status.Iat) >= 0
 }
 
 // 中间件，要求用户必须登录才能访问API。
-// 用户信息(UserIdentity类型)存至ctx.Keys["identity"]。
+// 管理员信息(AdminIdentity类型)存至ctx.Keys["identity"]。
 // 同时，如果有效token签发时间已经超过一个阙值，则在header提供一个新的token
 func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	//subCode不小于0，不大于999
@@ -91,7 +91,7 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 		jsonBytes, signBytes := bArr[0], bArr[1]
 
 		now := time.Now()
-		iden := &UserIdentity{}
+		iden := &AdminIdentity{}
 		if err := jsoniter.ConfigFastest.Unmarshal(jsonBytes, &iden); err != nil {
 			ctx.AbortWithStatusJSON(code401("token反序列化失败", 3))
 			return
@@ -119,11 +119,11 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 		//已确认token有效
 		if allowRefresh && now.Compare(iden.Iat.Add(utils.TokenRefreshAfter)) >= 0 {
 			//如果token已经过了一定时间，提供新的token
-			ctx.Header("rop-refresh-token", newToken(&model.User{
+			ctx.Header("rop-refresh-token", newToken(&model.Admin{
 				ZjuId:    iden.ZjuId,
 				At:       iden.At,
 				Nickname: iden.Nickname,
-				Perm:     iden.Perm,
+				Level:    iden.Level,
 				//忽略CreateAt等信息
 			}))
 		}
@@ -133,15 +133,15 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 }
 
 // 内部方法，生成一个新token
-func newToken(user *model.User) string {
+func newToken(user *model.Admin) string {
 	iat := time.Now()
-	iden := &UserIdentity{
+	iden := &AdminIdentity{
 		Iat:      iat,
 		Exp:      iat.Add(utils.TokenDuration),
 		ZjuId:    user.ZjuId,
 		At:       user.At,
 		Nickname: user.Nickname,
-		Perm:     user.Perm,
+		Level:    user.Level,
 	}
 	idenJson := utils.Stringify(iden)
 	//直接获取string底层的byte[]
@@ -154,20 +154,35 @@ func newToken(user *model.User) string {
 	return fmt.Sprintf("%s %s", idenB64, signB64)
 }
 
-func login(ctx *gin.Context) {
+func adminLogin(ctx *gin.Context) {
 	//TODO 测试用，直接登录
-	ctx.Header("rop-refresh-token", newToken(model.TestUser))
+	type Arg struct {
+		ZjuId string `json:"zju_id"`
+		At    uint32 `json:"at"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindJSON(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		return
+	}
+
+	admin := model.GetAdmin(arg.ZjuId, arg.At)
+	if admin == nil {
+		ctx.AbortWithStatusJSON(utils.Message("用户不存在", 400, 1))
+		return
+	}
+	ctx.Header("rop-refresh-token", newToken(admin))
 	ctx.PureJSON(utils.Success())
 }
 
 func logout(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(*UserIdentity)
+	id := ctx.MustGet("identity").(*AdminIdentity)
 	addVoidInfo(id.ZjuId, voidOne{iat: id.Iat})
 	ctx.PureJSON(utils.Success())
 }
 
 func logoutAll(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(*UserIdentity)
+	id := ctx.MustGet("identity").(*AdminIdentity)
 	addVoidInfo(id.ZjuId, voidBefore{before: time.Now()})
 	ctx.PureJSON(utils.Success())
 }
@@ -203,7 +218,7 @@ func authInit(routerGroup *gin.RouterGroup) {
 		}
 	}()
 
-	routerGroup.POST("/login", login)
+	routerGroup.POST("/login", adminLogin)
 	routerGroup.GET("/logout", AuthWithRefresh(false), logout)
 	routerGroup.GET("/logoutAll", AuthWithRefresh(false), logoutAll)
 }
