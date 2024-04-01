@@ -9,7 +9,7 @@ import (
 
 func orgInit(routerGroup *gin.RouterGroup) {
 	orgGroup := routerGroup.Group("/org", AuthWithRefresh(true))
-	orgGroup.GET("/", getOrgInfo)
+	orgGroup.GET("", getOrgInfo) //对应路径：/org，末尾没有/
 	orgGroup.POST("/addDepart", addDepart)
 	orgGroup.POST("/deleteDepart", deleteDepart)
 	orgGroup.POST("/renameDepart", renameDepart)

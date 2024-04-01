@@ -18,6 +18,7 @@ type Form struct {
 	Owner uint32 `json:"owner" gorm:"not null;uniqueIndex:uni_name_owner"`
 }
 
+//按id降序，查询指定组织所有表单的简略信息
 func GetForms(owner uint32) []*Form {
 	result := make([]*Form, 0)
 	db.

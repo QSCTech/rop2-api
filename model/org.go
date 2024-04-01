@@ -26,7 +26,7 @@ func GetOrg(id uint32) *Org {
 }
 
 // 内部方法。初始化一个组织（包括默认部门、管理员、默认拒信）。
-func InitNewOrg(name string, adminZjuId string, adminNickname string) {
+func InitNewOrg(name string, adminZjuId string, adminNickname string) (newOrgId uint32, funcError error) {
 	transactionFunc := func(tx *gorm.DB) (err error) {
 		org := &Org{
 			Name: name,
@@ -34,6 +34,7 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) {
 		if err = tx.Select("Name").Create(org).Error; err != nil {
 			return
 		}
+		newOrgId = org.Id
 		defaultDepart := &Depart{
 			Name:  "默认部门",
 			Owner: org.Id,
@@ -93,9 +94,10 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) {
 		//成功完成，没有错误
 		return
 	}
-	db.Transaction(func(tx *gorm.DB) error {
+	funcError = db.Transaction(func(tx *gorm.DB) error {
 		err := transactionFunc(tx)
 		//或许可以处理一下err
 		return err
 	})
+	return
 }
