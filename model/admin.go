@@ -27,12 +27,23 @@ const (
 	//为简化，我们减少了权限级别数，估计可查看/可管理两级足以满足大部分需求
 )
 
-func GetAdmin(zjuId string, at uint32) *Admin {
-	var pobj = &Admin{}
-	result := db.First(pobj, "zju_id = ? AND at = ?", zjuId, at)
-	if result.Error != nil {
-		return nil
+func GetAdmin(zjuId string, at *uint32) []*Admin {
+	var pobj = make([]*Admin, 0)
+	if at == nil {
+		db.Find(&pobj, "zju_id = ?", zjuId)
 	} else {
-		return pobj
+		db.Find(&pobj, "zju_id = ? and at = ?", zjuId, *at)
 	}
+	return pobj
+}
+
+type AdminProfile struct {
+	OrgId   uint32 `json:"orgId"`
+	OrgName string `json:"orgName"`
+}
+
+func GetAvailableOrgs(zjuId string) []*AdminProfile {
+	profiles := make([]*AdminProfile, 2)
+	db.Table("admins").Select("orgs.name as OrgName", "admins.at as OrgId").Joins("JOIN orgs ON admins.at = orgs.id").Where("admins.zju_id = ?", zjuId).Scan(&profiles)
+	return profiles
 }

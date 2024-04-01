@@ -156,23 +156,27 @@ func newToken(user *model.Admin) string {
 
 func adminLogin(ctx *gin.Context) {
 	//TODO 测试中，无检验直接登录
-	//需要提供管理员zjuid和组织id
 	type Arg struct {
-		ZjuId string `json:"zju_id"`
-		At    uint32 `json:"at"`
+		ZjuId *string `json:"zju_id"`
+		At    *uint32 `json:"at"` //可选，如果有多个组织则返回300
 	}
 	arg := &Arg{}
-	if ctx.ShouldBindJSON(arg) != nil {
+	if ctx.ShouldBindJSON(arg) != nil || arg.ZjuId == nil || len(*arg.ZjuId) <= 0 {
 		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
 		return
 	}
 
-	admin := model.GetAdmin(arg.ZjuId, arg.At)
-	if admin == nil {
+	admin := model.GetAdmin(*arg.ZjuId, arg.At)
+	if len(admin) <= 0 {
 		ctx.AbortWithStatusJSON(utils.Message("用户不存在", 400, 1))
 		return
 	}
-	ctx.Header("rop-refresh-token", newToken(admin))
+	if len(admin) > 1 {
+		orgProfiles := model.GetAvailableOrgs(*arg.ZjuId)
+		ctx.AbortWithStatusJSON(300, orgProfiles)
+		return
+	}
+	ctx.Header("rop-refresh-token", newToken(admin[0]))
 	ctx.PureJSON(utils.Success())
 }
 
