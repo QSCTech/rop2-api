@@ -41,7 +41,7 @@ func addDepart(ctx *gin.Context) {
 	}
 	arg := &AddDepartBody{}
 	if ctx.ShouldBindJSON(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
 	name := arg.Name
@@ -51,14 +51,14 @@ func addDepart(ctx *gin.Context) {
 	}
 
 	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
+		ctx.AbortWithStatusJSON(utils.MessageForbidden())
 		return
 	}
 
 	if ok, _ := model.CreateDepart(orgId, arg.Name); ok {
 		ctx.PureJSON(utils.Success())
 	} else {
-		ctx.AbortWithStatusJSON(utils.Message("部门命名重复", 422, 11))
+		ctx.AbortWithStatusJSON(utils.MessageDuplicate())
 	}
 }
 
@@ -71,19 +71,19 @@ func deleteDepart(ctx *gin.Context) {
 	}
 	arg := &DeleteDepartBody{}
 	if ctx.ShouldBindJSON(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
 	depIdToDelete := arg.Id
 
 	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
+		ctx.AbortWithStatusJSON(utils.MessageForbidden())
 		return
 	}
 
 	depToDelete := model.GetDepart(depIdToDelete)
 	if depToDelete == nil || depToDelete.Owner != orgId {
-		ctx.AbortWithStatusJSON(utils.Message("部门不存在", 422, 2))
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 
@@ -104,7 +104,7 @@ func renameDepart(ctx *gin.Context) {
 	}
 	arg := &RenameDepartBody{}
 	if ctx.ShouldBindJSON(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
 	depIdToRename := arg.Id
@@ -116,7 +116,7 @@ func renameDepart(ctx *gin.Context) {
 	}
 
 	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
+		ctx.AbortWithStatusJSON(utils.MessageForbidden())
 		return
 	}
 
@@ -124,13 +124,13 @@ func renameDepart(ctx *gin.Context) {
 
 	depToRename := model.GetDepart(depIdToRename)
 	if depToRename == nil || depToRename.Owner != orgId {
-		ctx.AbortWithStatusJSON(utils.Message("部门不存在", 422, 2))
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 
 	if model.RenameDepart(depIdToRename, newName) {
 		ctx.PureJSON(utils.Success())
 	} else {
-		ctx.AbortWithStatusJSON(utils.Message("部门命名重复", 422, 11))
+		ctx.AbortWithStatusJSON(utils.MessageDuplicate())
 	}
 }

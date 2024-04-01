@@ -29,3 +29,23 @@ func Success() (int, gin.H) {
 		"code": 0,
 	}
 }
+
+//参数绑定失败的公用错误消息&错误码。code为400001
+func MessageBindFail() (int, *CodeMessageObj) {
+	return Message("参数绑定失败", 400, 1)
+}
+
+//部门、表单重名的公用错误消息&错误码。code为409001
+func MessageDuplicate() (int, *CodeMessageObj) {
+	return Message("存在同名对象", 409, 1)
+}
+
+//拒绝访问的公用错误消息&错误码。code为403001，只适用于有权限且权限不足（试图跨组织操作为其它错误）
+func MessageForbidden() (int, *CodeMessageObj) {
+	return Message("权限不足", 403, 1)
+}
+
+//对象不存在的公用错误消息&错误码。code为404001
+func MessageNotFound() (int, *CodeMessageObj) {
+	return Message("对象不存在", 404, 1)
+}

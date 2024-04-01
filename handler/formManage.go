@@ -39,7 +39,7 @@ func getFormDetail(ctx *gin.Context) {
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindQuery(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
 
@@ -48,7 +48,7 @@ func getFormDetail(ctx *gin.Context) {
 	if form != nil {
 		ctx.PureJSON(200, form)
 	} else {
-		ctx.AbortWithStatusJSON(utils.Message("表单不存在", 422, 1))
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 }
@@ -58,7 +58,7 @@ func editForm(ctx *gin.Context) {
 	iden := ctx.MustGet("identity").(*AdminIdentity)
 
 	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
+		ctx.AbortWithStatusJSON(utils.MessageForbidden())
 		return
 	}
 
@@ -67,14 +67,14 @@ func editForm(ctx *gin.Context) {
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindQuery(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
 
 	formId := arg.Id
 	form := model.GetFormDetail(iden.At, formId)
 	if form == nil {
-		ctx.AbortWithStatusJSON(utils.Message("表单不存在", 422, 1))
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 
@@ -124,7 +124,7 @@ func createForm(ctx *gin.Context) {
 	iden := ctx.MustGet("identity").(*AdminIdentity)
 
 	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
+		ctx.AbortWithStatusJSON(utils.MessageForbidden())
 		return
 	}
 
@@ -133,14 +133,14 @@ func createForm(ctx *gin.Context) {
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindJSON(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
 
 	_, err := model.CreateForm(iden.At, arg.Name)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			ctx.AbortWithStatusJSON(utils.Message("存在重名表单", 400, 1))
+			ctx.AbortWithStatusJSON(utils.MessageDuplicate())
 			return
 		}
 		ctx.AbortWithStatusJSON(utils.Message("创建失败", 400, 10))

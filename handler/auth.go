@@ -162,13 +162,13 @@ func adminLogin(ctx *gin.Context) {
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindJSON(arg) != nil || arg.ZjuId == nil || len(*arg.ZjuId) <= 0 {
-		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
 
 	admin := model.GetAdmin(*arg.ZjuId, arg.At)
 	if len(admin) <= 0 {
-		ctx.AbortWithStatusJSON(utils.Message("用户不存在", 400, 1))
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 	if len(admin) > 1 {
