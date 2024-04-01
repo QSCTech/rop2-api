@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"rop2-api/model"
 	"rop2-api/utils"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	jsoniter "github.com/json-iterator/go"
+	"gorm.io/gorm"
 )
 
 func formInit(routerGroup *gin.RouterGroup) {
@@ -15,6 +17,7 @@ func formInit(routerGroup *gin.RouterGroup) {
 	formGroup.GET("/list", getFormList)
 	formGroup.GET("/detail", getFormDetail)
 	formGroup.POST("/edit", editForm)
+	formGroup.POST("/create", createForm)
 }
 
 // 获取表单列表，只有简略信息：id,name,start/endAt,create/updateAt
@@ -113,4 +116,35 @@ func editForm(ctx *gin.Context) {
 		}
 	}
 	model.SaveForm(form)
+	ctx.PureJSON(utils.Success())
+}
+
+// 编辑表单，query传入id，body为json包含要编辑的字段和新值
+func createForm(ctx *gin.Context) {
+	iden := ctx.MustGet("identity").(*AdminIdentity)
+
+	if iden.Level < model.Maintainer {
+		ctx.AbortWithStatusJSON(utils.Message("权限不足", 403, 1))
+		return
+	}
+
+	type Arg struct {
+		Name string `json:"name"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindJSON(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.Message("参数绑定失败", 400, 0))
+		return
+	}
+
+	_, err := model.CreateForm(iden.At, arg.Name)
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			ctx.AbortWithStatusJSON(utils.Message("存在重名表单", 400, 1))
+			return
+		}
+		ctx.AbortWithStatusJSON(utils.Message("创建失败", 400, 10))
+		return
+	}
+	ctx.PureJSON(utils.Success())
 }

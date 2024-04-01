@@ -26,5 +26,5 @@ func readEnv(envKey, defaultValue string) string {
 func Init() {
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&parseTime=true")
 	//默认值可以考虑改成机器唯一id
-	IdentityKey = RawBytes(readEnv("IDENTITY_KEY", time.Now().String()))
+	IdentityKey = RawBytes(readEnv("IDENTITY_KEY", "__default_development_identity_key"))
 }

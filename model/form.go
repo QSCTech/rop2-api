@@ -40,3 +40,17 @@ func GetFormDetail(owner uint32, id uint32) *Form {
 func SaveForm(obj *Form) {
 	db.Save(obj)
 }
+
+func CreateForm(owner uint32, name string) (uint32, error) {
+	form := &Form{
+		Name:     name,
+		Owner:    owner,
+		Entry:    1,
+		Children: `[{"id":1}]`, //TODO 修改新问卷的默认问题
+	}
+	result := db.Select("Name", "Owner", "Entry", "Children").Create(form)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return form.Id, nil
+}
