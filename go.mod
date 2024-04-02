@@ -2,12 +2,15 @@ module rop2-api
 
 go 1.21.4
 
-require github.com/gin-gonic/gin v1.9.1
+require (
+	github.com/gin-contrib/cors v1.7.1
+	github.com/gin-gonic/gin v1.9.1
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/gin-contrib/cors v1.7.1 // indirect
 	github.com/go-sql-driver/mysql v1.8.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 )
 
 require (

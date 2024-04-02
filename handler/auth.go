@@ -132,6 +132,18 @@ func AuthWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	}
 }
 
+// 中间件，要求用户在登录组织至少有指定的权限，否则403
+func RequireLevel(requireLevel model.PermLevel) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		id := ctx.MustGet("identity").(*AdminIdentity)
+		if id.Level < requireLevel {
+			ctx.AbortWithStatusJSON(utils.MessageForbidden())
+			return
+		}
+		ctx.Next()
+	}
+}
+
 // 内部方法，生成一个新token
 func newToken(user *model.Admin) string {
 	iat := time.Now()
@@ -157,7 +169,7 @@ func newToken(user *model.Admin) string {
 func adminLogin(ctx *gin.Context) {
 	//TODO 测试中，无检验直接登录
 	type Arg struct {
-		ZjuId *string `json:"zju_id"`
+		ZjuId *string `json:"zjuId"`
 		At    *uint32 `json:"at"` //可选，如果有多个组织则返回300
 	}
 	arg := &Arg{}

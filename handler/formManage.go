@@ -16,8 +16,8 @@ func formInit(routerGroup *gin.RouterGroup) {
 
 	formGroup.GET("/list", getFormList)
 	formGroup.GET("/detail", getFormDetail)
-	formGroup.POST("/edit", editForm)
-	formGroup.POST("/create", createForm)
+	formGroup.POST("/edit", RequireLevel(model.Maintainer), editForm)
+	formGroup.POST("/create", RequireLevel(model.Maintainer), createForm)
 }
 
 // 获取表单列表，只有简略信息：id,name,start/endAt,create/updateAt
@@ -56,11 +56,6 @@ func getFormDetail(ctx *gin.Context) {
 // 编辑表单，query传入id，body为json包含要编辑的字段和新值
 func editForm(ctx *gin.Context) {
 	iden := ctx.MustGet("identity").(*AdminIdentity)
-
-	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
-		return
-	}
 
 	type Arg struct {
 		Id uint32 `form:"id"`
@@ -123,11 +118,6 @@ func editForm(ctx *gin.Context) {
 // 新建表单
 func createForm(ctx *gin.Context) {
 	iden := ctx.MustGet("identity").(*AdminIdentity)
-
-	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
-		return
-	}
 
 	type Arg struct {
 		Name string `json:"name"`

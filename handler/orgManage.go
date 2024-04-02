@@ -10,9 +10,9 @@ import (
 func orgInit(routerGroup *gin.RouterGroup) {
 	orgGroup := routerGroup.Group("/org", AuthWithRefresh(true))
 	orgGroup.GET("", getOrgInfo) //对应路径：/org，末尾没有/
-	orgGroup.POST("/addDepart", addDepart)
-	orgGroup.POST("/deleteDepart", deleteDepart)
-	orgGroup.POST("/renameDepart", renameDepart)
+	orgGroup.POST("/addDepart", RequireLevel(model.Maintainer), addDepart)
+	orgGroup.POST("/deleteDepart", RequireLevel(model.Maintainer), deleteDepart)
+	orgGroup.POST("/renameDepart", RequireLevel(model.Maintainer), renameDepart)
 }
 
 // 获取登录所在组织（含所有部门）的信息
@@ -51,11 +51,6 @@ func addDepart(ctx *gin.Context) {
 		return
 	}
 
-	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
-		return
-	}
-
 	if ok, _ := model.CreateDepart(orgId, arg.Name); ok {
 		ctx.PureJSON(utils.Success())
 	} else {
@@ -76,11 +71,6 @@ func deleteDepart(ctx *gin.Context) {
 		return
 	}
 	depIdToDelete := arg.Id
-
-	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
-		return
-	}
 
 	org := model.GetOrg(orgId)
 	if org.DefaultDepart == depIdToDelete {
@@ -116,11 +106,6 @@ func renameDepart(ctx *gin.Context) {
 	lenDiff := utils.LenBetween(newName, 1, 20)
 	if lenDiff != 0 {
 		ctx.AbortWithStatusJSON(utils.MessageInvalidLength(lenDiff < 0))
-		return
-	}
-
-	if iden.Level < model.Maintainer {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
 		return
 	}
 

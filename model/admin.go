@@ -37,13 +37,31 @@ func GetAdmin(zjuId string, at *uint32) []*Admin {
 	return pobj
 }
 
-type AdminProfile struct {
+type AdminChoice struct {
 	OrgId   uint32 `json:"orgId"`
 	OrgName string `json:"orgName"`
 }
 
-func GetAvailableOrgs(zjuId string) []*AdminProfile {
-	profiles := make([]*AdminProfile, 2)
+func GetAvailableOrgs(zjuId string) []*AdminChoice {
+	profiles := make([]*AdminChoice, 2)
 	db.Table("admins").Select("orgs.name as OrgName", "admins.at as OrgId").Joins("JOIN orgs ON admins.at = orgs.id").Where("admins.zju_id = ?", zjuId).Scan(&profiles)
 	return profiles
+}
+
+type AdminProfile struct {
+	Nickname string    `json:"nickname"`
+	Level    PermLevel `json:"level"`
+	CreateAt time.Time `json:"createAt"`
+}
+
+func GetAdminsInOrg(orgId uint32, offset int, limit int) []*AdminProfile {
+	results := make([]*AdminProfile, 0)
+	db.
+		Table("admins").
+		Select("Nickname", "Level", "CreateAt").
+		Where("at = ?", orgId).
+		Offset(offset).
+		Limit(limit).
+		Scan(&results)
+	return results
 }
