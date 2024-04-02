@@ -45,8 +45,9 @@ func addDepart(ctx *gin.Context) {
 		return
 	}
 	name := arg.Name
-	if !utils.LenBetween(name, 1, 20) {
-		ctx.AbortWithStatusJSON(utils.Message("名称长度无效", 400, 1))
+	lenDiff := utils.LenBetween(name, 1, 20)
+	if lenDiff != 0 {
+		ctx.AbortWithStatusJSON(utils.MessageInvalidLength(lenDiff < 0))
 		return
 	}
 
@@ -81,17 +82,19 @@ func deleteDepart(ctx *gin.Context) {
 		return
 	}
 
+	org := model.GetOrg(orgId)
+	if org.DefaultDepart == depIdToDelete {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
 	depToDelete := model.GetDepart(depIdToDelete)
 	if depToDelete == nil || depToDelete.Owner != orgId {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 
-	if model.DeleteDepart(depIdToDelete) {
-		ctx.PureJSON(utils.Success())
-	} else {
-		ctx.AbortWithStatusJSON(utils.Message("无法删除默认部门", 422, 1))
-	}
+	model.DeleteDepart(depIdToDelete)
+	ctx.PureJSON(utils.Success())
 }
 
 func renameDepart(ctx *gin.Context) {
@@ -110,8 +113,9 @@ func renameDepart(ctx *gin.Context) {
 	depIdToRename := arg.Id
 	newName := arg.NewName
 
-	if !utils.LenBetween(newName, 1, 20) {
-		ctx.AbortWithStatusJSON(utils.Message("名称长度无效", 400, 1))
+	lenDiff := utils.LenBetween(newName, 1, 20)
+	if lenDiff != 0 {
+		ctx.AbortWithStatusJSON(utils.MessageInvalidLength(lenDiff < 0))
 		return
 	}
 

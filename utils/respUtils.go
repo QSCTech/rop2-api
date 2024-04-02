@@ -49,3 +49,16 @@ func MessageForbidden() (int, *CodeMessageObj) {
 func MessageNotFound() (int, *CodeMessageObj) {
 	return Message("对象不存在", 404, 1)
 }
+
+func MessageInvalidLength(isTooShort bool) (int, *CodeMessageObj) {
+	var subMessage string
+	var subCode int
+	if isTooShort {
+		subMessage = "过短"
+		subCode = 12
+	} else {
+		subMessage = "过长"
+		subCode = 11
+	}
+	return Message("文本长度"+subMessage, 422, subCode)
+}

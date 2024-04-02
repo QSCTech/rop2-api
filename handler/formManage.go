@@ -85,8 +85,9 @@ func editForm(ctx *gin.Context) {
 		switch field {
 		case "name":
 			newValue := iter.ReadString()
-			if !utils.LenBetween(newValue, 1, 25) {
-				ctx.AbortWithStatusJSON(utils.Message("表单名称长度无效", 400, 11))
+			lenDiff := utils.LenBetween(newValue, 1, 25)
+			if lenDiff != 0 {
+				ctx.AbortWithStatusJSON(utils.MessageInvalidLength(lenDiff < 0))
 				return
 			}
 			form.Name = newValue
@@ -119,7 +120,7 @@ func editForm(ctx *gin.Context) {
 	ctx.PureJSON(utils.Success())
 }
 
-// 编辑表单，query传入id，body为json包含要编辑的字段和新值
+// 新建表单
 func createForm(ctx *gin.Context) {
 	iden := ctx.MustGet("identity").(*AdminIdentity)
 
@@ -134,6 +135,12 @@ func createForm(ctx *gin.Context) {
 	arg := &Arg{}
 	if ctx.ShouldBindJSON(arg) != nil {
 		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	lenDiff := utils.LenBetween(arg.Name, 1, 25)
+	if lenDiff != 0 {
+		ctx.AbortWithStatusJSON(utils.MessageInvalidLength(lenDiff < 0))
 		return
 	}
 

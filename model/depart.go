@@ -47,16 +47,8 @@ func CreateDepart(orgId uint32, name string) (bool, *Depart) {
 	return true, d
 }
 
-func DeleteDepart(id uint32) bool {
-	result := db.Delete(&Depart{}, id)
-	if err := result.Error; err != nil {
-		if errors.Is(err, gorm.ErrForeignKeyViolated) {
-			//默认部门受外键约束不能删除
-			return false
-		}
-		panic(err)
-	}
-	return true
+func DeleteDepart(id uint32) {
+	db.Delete(&Depart{}, id)
 }
 
 func RenameDepart(id uint32, newName string) bool {
