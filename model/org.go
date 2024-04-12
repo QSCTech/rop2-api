@@ -6,6 +6,19 @@ import (
 	"gorm.io/gorm"
 )
 
+type ConfigUseDeparts uint8
+
+const (
+	//不显示部门
+	DisableDeparts ConfigUseDeparts = 0b0000_0000
+	//开启部门机制，只使用统一考核
+	UnifiedAssess ConfigUseDeparts = 0b0000_0011
+	//开启部门机制，只使用独立考核
+	IndependentAssess ConfigUseDeparts = 0b0000_0101
+	//开启部门机制，使用独立和统一考核
+	MixedAssess ConfigUseDeparts = 0b0000_0111
+)
+
 type Org struct {
 	Id   uint32 `json:"id" gorm:"primaryKey;autoIncrement;<-:false"` //主键，自动递增
 	Name string `json:"name" gorm:"type:varchar(80);not null;unique"`
@@ -13,6 +26,8 @@ type Org struct {
 	CreateAt time.Time `json:"createAt" gorm:"not null;autoCreateTime"`
 
 	DefaultDepart uint32 `json:"defaultDepart" gorm:"uniqueIndex"`
+
+	UseDeparts ConfigUseDeparts `json:"useDeparts" gorm:"not null;default:0"`
 }
 
 func GetOrg(id uint32) *Org {
