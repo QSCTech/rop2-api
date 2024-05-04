@@ -17,6 +17,7 @@ type CodeMessageObj struct {
 	Message string `json:"message"`
 }
 
+//返回用于AbortWithStatusJSON的参数，HTTP错误码为baseStatusCode，body为CodeMessageObj，JSON格式
 func Message(message string, baseStatusCode int, code ...int) (int, *CodeMessageObj) {
 	return baseStatusCode, &CodeMessageObj{
 		Message: message,

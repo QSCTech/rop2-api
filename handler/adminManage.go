@@ -8,13 +8,13 @@ import (
 )
 
 func adminInit(routerGroup *gin.RouterGroup) {
-	orgGroup := routerGroup.Group("/admin", AuthWithRefresh(true))
+	orgGroup := routerGroup.Group("/admin", RequireAdminWithRefresh(true))
 	orgGroup.GET("", getAdminList)
 	orgGroup.POST("/editLevel", RequireLevel(model.Maintainer), editLevel)
 }
 
 func getAdminList(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(*AdminIdentity)
+	id := ctx.MustGet("identity").(AdminIdentity)
 	//只要能以组织的身份登录就可查询
 	//考虑加限制？
 
@@ -32,16 +32,5 @@ func getAdminList(ctx *gin.Context) {
 }
 
 func editLevel(ctx *gin.Context) {
-	//TODO 设为0即为删除
-	// id := ctx.MustGet("identity").(*AdminIdentity)
-
-	// type Arg struct {
-	// 	ZjuId    string          `json:"zjuId"`
-	// 	NewLevel model.PermLevel `json:"newLevel"`
-	// }
-	// arg := &Arg{}
-	// if ctx.ShouldBindQuery(arg) != nil {
-	// 	ctx.AbortWithStatusJSON(utils.MessageBindFail())
-	// 	return
-	// }
+	//TODO
 }

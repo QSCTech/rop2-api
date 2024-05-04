@@ -10,4 +10,5 @@ func Init(routerGroup *gin.RouterGroup) {
 	orgInit(routerGroup)
 	formInit(routerGroup)
 	adminInit(routerGroup)
+	applicantInit(routerGroup)
 }

@@ -28,9 +28,20 @@ func GetForms(owner uint32) []*Form {
 	return result
 }
 
+// 查询表单详情同时限定owner，适用于管理员查询
 func GetFormDetail(owner uint32, id uint32) *Form {
 	pobj := &Form{}
 	result := db.First(pobj, "id = ? AND owner = ?", id, owner)
+	if result.Error != nil {
+		return nil
+	}
+	return pobj
+}
+
+// 根据id查询表单详情，仅部分字段(不包含CreateAt,UpdateAt)
+func ApplicantGetFormDetail(id uint32) *Form {
+	pobj := &Form{}
+	result := db.Select("Id", "Name", "Desc", "Entry", "Children", "StartAt", "EndAt").First(pobj, "id = ?", id)
 	if result.Error != nil {
 		return nil
 	}

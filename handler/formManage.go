@@ -12,7 +12,7 @@ import (
 )
 
 func formInit(routerGroup *gin.RouterGroup) {
-	formGroup := routerGroup.Group("/form", AuthWithRefresh(true))
+	formGroup := routerGroup.Group("/form", RequireAdminWithRefresh(true))
 
 	formGroup.GET("/list", getFormList)
 	formGroup.GET("/detail", getFormDetail)
@@ -22,7 +22,7 @@ func formInit(routerGroup *gin.RouterGroup) {
 
 // 获取表单列表，只有简略信息：id,name,start/endAt,create/updateAt
 func getFormList(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*AdminIdentity)
+	iden := ctx.MustGet("identity").(AdminIdentity)
 	orgId := iden.At
 
 	//不考虑分批查询，一次查询并返回
@@ -31,7 +31,7 @@ func getFormList(ctx *gin.Context) {
 
 // 获取单个表单详情，返回全部信息
 func getFormDetail(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*AdminIdentity)
+	iden := ctx.MustGet("identity").(AdminIdentity)
 	orgId := iden.At
 
 	type Arg struct {
@@ -55,7 +55,7 @@ func getFormDetail(ctx *gin.Context) {
 
 // 编辑表单，query传入id，body为json包含要编辑的字段和新值
 func editForm(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*AdminIdentity)
+	iden := ctx.MustGet("identity").(AdminIdentity)
 
 	type Arg struct {
 		Id uint32 `form:"id"`
@@ -117,7 +117,7 @@ func editForm(ctx *gin.Context) {
 
 // 新建表单
 func createForm(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*AdminIdentity)
+	iden := ctx.MustGet("identity").(AdminIdentity)
 
 	type Arg struct {
 		Name string `json:"name"`

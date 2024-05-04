@@ -9,10 +9,12 @@ import (
 var (
 	DSN string
 
-	TokenDuration     time.Duration = 60 * 60 * 8 * time.Second
-	TokenRefreshAfter time.Duration = min(TokenDuration/25, 60*5) * time.Second //自动刷新token需经过的时间
+	//自动刷新token距token签发需经过的时间
+	TokenRefreshAfter      time.Duration = 300 * time.Second
+	AdminTokenDuration     time.Duration = time.Hour * 24 * 2 //管理员不操作多久后token失效
+	ApplicantTokenDuration time.Duration = time.Hour * 24 * 7 //候选人不操作多久后token失效
 
-	IdentityKey []byte
+	IdentityKey []byte //加密凭据的私钥
 )
 
 func readEnv(envKey, defaultValue string) string {
@@ -25,6 +27,7 @@ func readEnv(envKey, defaultValue string) string {
 // 读取配置
 func Init() {
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&parseTime=true")
-	//默认值可以考虑改成机器唯一id
-	IdentityKey = RawBytes(readEnv("IDENTITY_KEY", "__default_development_identity_key"))
+
+	//WARN: 生产环境请勿使用默认IDENTITY_KEY
+	IdentityKey = Sha256(RawBytes(readEnv("IDENTITY_KEY", DSN)), 16)
 }

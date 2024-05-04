@@ -8,7 +8,7 @@ import (
 )
 
 func orgInit(routerGroup *gin.RouterGroup) {
-	orgGroup := routerGroup.Group("/org", AuthWithRefresh(true))
+	orgGroup := routerGroup.Group("/org", RequireAdminWithRefresh(true))
 	orgGroup.GET("", getOrgInfo) //对应路径：/org，末尾没有/
 	orgGroup.POST("/addDepart", RequireLevel(model.Maintainer), addDepart)
 	orgGroup.POST("/deleteDepart", RequireLevel(model.Maintainer), deleteDepart)
@@ -17,7 +17,7 @@ func orgInit(routerGroup *gin.RouterGroup) {
 
 // 获取登录所在组织（含所有部门）的信息
 func getOrgInfo(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(*AdminIdentity)
+	id := ctx.MustGet("identity").(AdminIdentity)
 	//只要能以组织的身份登录，就可查询，对具体权限级别无要求
 	orgId := id.At
 	org := model.GetOrg(orgId)
@@ -33,7 +33,7 @@ func getOrgInfo(ctx *gin.Context) {
 }
 
 func addDepart(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*AdminIdentity)
+	iden := ctx.MustGet("identity").(AdminIdentity)
 	orgId := iden.At
 
 	type AddDepartBody struct {
@@ -59,7 +59,7 @@ func addDepart(ctx *gin.Context) {
 }
 
 func deleteDepart(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*AdminIdentity)
+	iden := ctx.MustGet("identity").(AdminIdentity)
 	orgId := iden.At
 
 	type DeleteDepartBody struct {
@@ -88,7 +88,7 @@ func deleteDepart(ctx *gin.Context) {
 }
 
 func renameDepart(ctx *gin.Context) {
-	iden := ctx.MustGet("identity").(*AdminIdentity)
+	iden := ctx.MustGet("identity").(AdminIdentity)
 	orgId := iden.At
 
 	type RenameDepartBody struct {
