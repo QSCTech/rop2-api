@@ -11,7 +11,23 @@ import (
 func applicantInit(routerGroup *gin.RouterGroup) {
 	applicantGroup := routerGroup.Group("/applicant", RequireLoginWithRefresh(true))
 
+	applicantGroup.GET("/org", applicantGetOrgDeparts)
 	applicantGroup.GET("/form", applicantGetFormDetail)
+}
+
+// 候选人获取组织部门列表（选择志愿时使用）
+func applicantGetOrgDeparts(ctx *gin.Context) {
+	type Arg struct {
+		Id uint32 `form:"id"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	result := model.GetOrgDeparts(arg.Id)
+	ctx.PureJSON(200, result)
 }
 
 func applicantGetFormDetail(ctx *gin.Context) {
