@@ -2,10 +2,9 @@ package utils
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"strconv"
 	"unsafe"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 func ToStr(value uint32) string {
@@ -13,8 +12,8 @@ func ToStr(value uint32) string {
 }
 
 func Stringify(literal interface{}) string {
-	str, _ := jsoniter.MarshalToString(literal)
-	return str
+	bs, _ := json.Marshal(literal)
+	return RawString(bs)
 }
 
 // 获取字符串的只读[]byte，修改slice会出错

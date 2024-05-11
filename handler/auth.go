@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"rop2-api/model"
 	"rop2-api/utils"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // 所有凭据(报名者、管理员)的抽象接口
@@ -36,7 +36,7 @@ type AdminIdentity struct {
 }
 
 func (this AdminIdentity) canRefresh(now time.Time) string {
-	if now.Compare(this.getIat().Add(utils.TokenRefreshAfter)) >= 0 {
+	if now.After(this.getIat().Add(utils.TokenRefreshAfter)) {
 		copy := this //浅克隆this
 		copy.Iat = now
 		copy.Exp = copy.Iat.Add(utils.AdminTokenDuration)
@@ -44,7 +44,7 @@ func (this AdminIdentity) canRefresh(now time.Time) string {
 	}
 	return ""
 }
-func (this AdminIdentity) isValid(now time.Time) bool { return now.Compare(this.Exp) < 0 }
+func (this AdminIdentity) isValid(now time.Time) bool { return now.Before(this.Exp) }
 func (this AdminIdentity) getId() string              { return this.ZjuId }
 func (this AdminIdentity) getIat() time.Time          { return this.Iat }
 
@@ -55,7 +55,7 @@ type ApplicantIdentity struct {
 }
 
 func (this ApplicantIdentity) canRefresh(now time.Time) string {
-	if now.Compare(this.getIat().Add(utils.TokenRefreshAfter)) >= 0 {
+	if now.After(this.getIat().Add(utils.TokenRefreshAfter)) {
 		copy := this //浅克隆this
 		copy.Iat = now
 		copy.Exp = copy.Iat.Add(utils.ApplicantTokenDuration)
@@ -63,7 +63,7 @@ func (this ApplicantIdentity) canRefresh(now time.Time) string {
 	}
 	return ""
 }
-func (this ApplicantIdentity) isValid(now time.Time) bool { return now.Compare(this.Exp) < 0 }
+func (this ApplicantIdentity) isValid(now time.Time) bool { return now.Before(this.Exp) }
 func (this ApplicantIdentity) getId() string              { return this.ZjuId }
 func (this ApplicantIdentity) getIat() time.Time          { return this.Iat }
 
@@ -82,7 +82,7 @@ type voidOne struct {
 
 func (info voidOne) needKeep(now time.Time) bool {
 	const secGap = 5 * time.Second //保证此失效记录完全覆盖有效期的小间隙
-	return info.iat.Add(utils.AdminTokenDuration).Add(secGap).Compare(now) >= 0
+	return info.iat.Add(utils.AdminTokenDuration).Add(secGap).After(now)
 }
 func (info voidOne) needVoid(status userIdentity) bool {
 	return status.getIat().Sub(info.iat).Abs() <= 2*time.Second
@@ -95,10 +95,10 @@ type voidBefore struct {
 
 func (info voidBefore) needKeep(now time.Time) bool {
 	const secGap = 5 * time.Second //保证此失效记录完全覆盖有效期的小间隙
-	return info.before.Add(utils.AdminTokenDuration).Add(secGap).Compare(now) >= 0
+	return info.before.Add(utils.AdminTokenDuration).Add(secGap).After(now)
 }
 func (info voidBefore) needVoid(status userIdentity) bool {
-	return info.before.Compare(status.getIat()) >= 0
+	return status.getIat().Compare(info.before) <= 0
 }
 
 // 从header读取token并转换，存储在resultPointer中，返回是否成功。
@@ -129,7 +129,7 @@ func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T) bool {
 	}
 	jsonBytes, signBytes := bArr[0], bArr[1]
 	now := time.Now()
-	if err := jsoniter.ConfigFastest.Unmarshal(jsonBytes, resultPointer); err != nil {
+	if err := json.Unmarshal(jsonBytes, resultPointer); err != nil {
 		ctx.AbortWithStatusJSON(code401("token反序列化失败", 3))
 		return false
 	}

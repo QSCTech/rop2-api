@@ -1,12 +1,18 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"rop2-api/utils"
+	"time"
+)
 
 type Form struct {
-	Id       uint32 `json:"id" gorm:"primaryKey;autoIncrement;<-:false"`
-	Name     string `json:"name" gorm:"type:varchar(100);not null;uniqueIndex:uni_name_owner"` //须在组织内唯一的表单名称
-	Desc     string `json:"desc"`
-	Entry    uint32 `json:"entry" gorm:"not null"`
+	Id   uint32 `json:"id" gorm:"primaryKey;autoIncrement;<-:false"`
+	Name string `json:"name" gorm:"type:varchar(100);not null;uniqueIndex:uni_name_owner"` //须在组织内唯一的表单名称
+	Desc string `json:"desc"`
+
+	//入口题目组约定为id:1的题目组，不再保留Entry属性
+
 	Children string `json:"children" gorm:"not null;type:json"`
 
 	StartAt *time.Time `json:"startAt"` //可空
@@ -18,7 +24,7 @@ type Form struct {
 	Owner uint32 `json:"owner" gorm:"not null;uniqueIndex:uni_name_owner"`
 }
 
-//按id降序，查询指定组织所有表单的简略信息
+// 按id降序，查询指定组织所有表单的简略信息
 func GetForms(owner uint32) []*Form {
 	result := make([]*Form, 0)
 	db.
@@ -26,6 +32,13 @@ func GetForms(owner uint32) []*Form {
 		Select("Id", "Name", "StartAt", "EndAt", "CreateAt", "UpdateAt").
 		Find(&result, "owner = ?", owner)
 	return result
+}
+
+// 检查指定表单id是否为指定组织所创建
+func CheckOwner(owner uint32, id uint32) bool {
+	var count int64
+	db.Table("forms").Where("id = ? AND owner = ?", id, owner).Count(&count)
+	return count > 0
 }
 
 // 查询表单详情同时限定owner，适用于管理员查询
@@ -41,25 +54,72 @@ func GetFormDetail(owner uint32, id uint32) *Form {
 // 根据id查询表单详情，仅部分字段(不包含CreateAt,UpdateAt)
 func ApplicantGetFormDetail(id uint32) *Form {
 	pobj := &Form{}
-	result := db.Select("Id", "Name", "Desc", "Entry", "Children", "StartAt", "EndAt").First(pobj, "id = ?", id)
+	result := db.Select("Id", "Name", "Desc", "Children", "StartAt", "EndAt").First(pobj, "id = ?", id)
 	if result.Error != nil {
 		return nil
 	}
 	return pobj
 }
 
-func SaveForm(obj *Form) {
-	db.Save(obj)
+type FormUpdate struct {
+	Id       uint32  `json:"id"`
+	Name     *string `json:"name"` //须在组织内唯一的表单名称
+	Desc     *string `json:"desc"`
+	Children *string `json:"children"`
+
+	StartAt *time.Time `json:"startAt"`
+	EndAt   *time.Time `json:"endAt"`
+}
+
+// 修改指定
+func SaveForm(obj FormUpdate) error {
+	updateMap := make(map[string]interface{})
+	if obj.Name != nil {
+		if diff := utils.LenBetween(*obj.Name, 1, 25); diff != 0 {
+			if diff > 0 {
+				return errors.New("标题过长")
+			} else {
+				return errors.New("标题过短")
+			}
+		}
+		updateMap["name"] = obj.Name
+	}
+	if obj.Desc != nil {
+		if diff := utils.LenBetween(*obj.Desc, 0, 200); diff != 0 {
+			return errors.New("简介过长")
+		}
+		updateMap["Desc"] = obj.Desc
+	}
+	if obj.Children != nil {
+		updateMap["Children"] = obj.Children
+	}
+	if obj.StartAt != nil {
+		//为unix时间戳<100即为设空，为nil保持不变
+		if obj.StartAt.Before(time.Unix(100, 0)) {
+			updateMap["StartAt"] = nil
+		} else {
+			updateMap["StartAt"] = obj.StartAt
+		}
+	}
+	if obj.EndAt != nil {
+		//>2099年即为设空，为nil保持不变
+		if obj.EndAt.After(time.Unix(4070880000, 0)) {
+			updateMap["EndAt"] = nil
+		} else {
+			updateMap["EndAt"] = obj.EndAt
+		}
+	}
+	db.Table("forms").Where("id = ?", obj.Id).Updates(updateMap)
+	return nil
 }
 
 func CreateForm(owner uint32, name string) (uint32, error) {
 	form := &Form{
 		Name:     name,
 		Owner:    owner,
-		Entry:    1,
 		Children: `[{"id":1,"children":[],"label":"默认题目组"}]`, //TODO 修改新问卷的默认问题
 	}
-	result := db.Select("Name", "Owner", "Entry", "Children").Create(form)
+	result := db.Select("Name", "Owner", "Children").Create(form)
 	if result.Error != nil {
 		return 0, result.Error
 	}

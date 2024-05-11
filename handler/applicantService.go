@@ -44,11 +44,11 @@ func applicantGetFormDetail(ctx *gin.Context) {
 	form := model.ApplicantGetFormDetail(formId)
 	if form != nil {
 		now := time.Now()
-		if form.StartAt != nil && form.StartAt.Compare(now) > 0 {
+		if form.StartAt != nil && form.StartAt.After(now) {
 			form.Desc = ""
 			//正常的children应为数组
 			form.Children = `{"message":"表单未开放"}`
-		} else if form.EndAt != nil && form.EndAt.Compare(now) < 0 {
+		} else if form.EndAt != nil && form.EndAt.Before(now) {
 			form.Desc = ""
 			form.Children = `{"message":"表单已结束"}`
 		}
