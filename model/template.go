@@ -1,3 +1,5 @@
+//注：相关功能暂时延期
+
 package model
 
 import "time"
