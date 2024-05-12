@@ -54,7 +54,7 @@ func GetFormDetail(owner uint32, id uint32) *Form {
 // 根据id查询表单详情，仅部分字段(不包含CreateAt,UpdateAt)
 func ApplicantGetFormDetail(id uint32) *Form {
 	pobj := &Form{}
-	result := db.Select("Id", "Name", "Desc", "Children", "StartAt", "EndAt").First(pobj, "id = ?", id)
+	result := db.Select("Id", "Name", "Desc", "Children", "StartAt", "EndAt", "Owner").First(pobj, "id = ?", id)
 	if result.Error != nil {
 		return nil
 	}

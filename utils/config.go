@@ -15,6 +15,8 @@ var (
 	ApplicantTokenDuration time.Duration = time.Hour * 24 * 7 //候选人不操作多久后token失效
 
 	IdentityKey []byte //加密凭据的私钥
+
+	DoResetDb bool = false
 )
 
 func readEnv(envKey, defaultValue string) string {
@@ -27,6 +29,10 @@ func readEnv(envKey, defaultValue string) string {
 // 读取配置
 func Init() {
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&parseTime=true")
+
+	if readEnv("ResetDb", "false") == "true" {
+		DoResetDb = true
+	}
 
 	//WARN: 生产环境请勿使用默认IDENTITY_KEY
 	IdentityKey = Sha256(RawBytes(readEnv("IDENTITY_KEY", DSN)), 16)

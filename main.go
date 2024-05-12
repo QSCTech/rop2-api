@@ -14,10 +14,15 @@ func main() {
 	utils.Init() //读取配置
 
 	model.Init()
-	model.ResetDb()
-	testOrgId, _ := model.InitNewOrg("测试组织", "N/A", "测试管理员")
-	model.CreateDepart(testOrgId, "部门1")
-	model.InitNewOrg("测试组织2", "N/A", "管理员2")
+
+	if utils.DoResetDb {
+		println("Starting ResetDb")
+		model.ResetDb()
+		testOrgId, _ := model.InitNewOrg("测试组织", "N/A", "测试管理员")
+		model.CreateDepart(testOrgId, "部门1")
+		model.InitNewOrg("测试组织2", "N/A", "管理员2")
+		println("ResetDb done")
+	}
 
 	server := gin.New()
 	server.Use(gin.Logger())
