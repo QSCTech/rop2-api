@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"rop2-api/handler"
 	"rop2-api/model"
 	"rop2-api/utils"
@@ -16,12 +17,12 @@ func main() {
 	model.Init()
 
 	if utils.DoResetDb || model.CountOrg() <= 0 {
-		println("Starting ResetDb")
+		fmt.Printf("Starting ResetDb\r\n")
 		model.ResetDb()
 		testOrgId, _ := model.InitNewOrg("测试组织", "N/A", "测试管理员")
 		model.CreateDepart(testOrgId, "部门1")
 		model.InitNewOrg("测试组织2", "N/A", "管理员2")
-		println("ResetDb done")
+		fmt.Printf("ResetDb done\r\n")
 	}
 
 	server := gin.New()
@@ -40,5 +41,5 @@ func main() {
 
 	handler.Init(rootRouter)
 
-	server.Run("127.0.0.1:8080")
+	server.Run(utils.BindAddr)
 }

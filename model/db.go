@@ -16,6 +16,7 @@ func Init() {
 	db, err = gorm.Open(mysql.Open(utils.DSN), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 		TranslateError:                           true,
+		DisableAutomaticPing:                     false, //开启定期ping，防止无操作断连
 	})
 	if err != nil {
 		panic(err)

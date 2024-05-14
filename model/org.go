@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -44,7 +45,7 @@ func CountOrg() int64 {
 	var result int64
 	rs := db.Table("orgs").Count(&result)
 	if rs.Error != nil {
-		println("CountOrg error: %s", rs.Error.Error())
+		fmt.Printf("CountOrg error: %s\r\n", rs.Error.Error())
 		return 0
 	}
 	return result

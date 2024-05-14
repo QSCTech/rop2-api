@@ -4,10 +4,10 @@ services:
   go-server:
     build: .
     ports:
-      # curl: (56) Recv failure: Connection reset by peer
-      # to be solved
       - "2231:8080"
     environment:
+      # - GIN_MODE=release
+      - ROP2_Addr=0.0.0.0:8080
       - ROP2_DSN=root:root@tcp(mysql:3306)/rop2?charset=utf8mb4&parseTime=true
     depends_on:
       mysql:
@@ -16,8 +16,8 @@ services:
   mysql:
     image: "mysql:8.4"
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: rop2
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=rop2
     volumes:
       - rop2_db:/var/lib/mysql:rw
     healthcheck:
