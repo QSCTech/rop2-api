@@ -10,7 +10,7 @@ type Template struct {
 	Id uint32 `json:"id" gorm:"primaryKey;autoIncrement;<-:false"`
 
 	//归属的组织（不是部门）
-	Owner uint32 `json:"owner" gorm:"not null;primaryKey;uniqueIndex:uni_owner_name"`
+	Owner uint32 `json:"owner" gorm:"not null;uniqueIndex:uni_owner_name"`
 	//自定义的标识，便于查找选择，与发送无关，须在组织内唯一
 	Name string `json:"name" gorm:"not null;type:varchar(40);uniqueIndex:uni_owner_name"`
 
