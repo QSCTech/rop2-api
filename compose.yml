@@ -1,0 +1,31 @@
+name: rop2-api
+
+services:
+  go-server:
+    build: .
+    ports:
+      # curl: (56) Recv failure: Connection reset by peer
+      # to be solved
+      - "2231:8080"
+    environment:
+      - ROP2_DSN=root:root@tcp(mysql:3306)/rop2?charset=utf8mb4&parseTime=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: "mysql:8.4"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: rop2
+    volumes:
+      - rop2_db:/var/lib/mysql:rw
+    healthcheck:
+      test: "mysql -u root -p'root' -e \"SELECT VERSION();CREATE DATABASE IF NOT EXISTS rop2;\""
+      start_period: 15s
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  rop2_db:

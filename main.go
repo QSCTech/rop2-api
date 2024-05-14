@@ -15,7 +15,7 @@ func main() {
 
 	model.Init()
 
-	if utils.DoResetDb {
+	if utils.DoResetDb || model.CountOrg() <= 0 {
 		println("Starting ResetDb")
 		model.ResetDb()
 		testOrgId, _ := model.InitNewOrg("测试组织", "N/A", "测试管理员")

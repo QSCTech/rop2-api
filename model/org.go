@@ -40,6 +40,16 @@ func GetOrg(id uint32) *Org {
 	}
 }
 
+func CountOrg() int64 {
+	var result int64
+	rs := db.Table("orgs").Count(&result)
+	if rs.Error != nil {
+		println("CountOrg error: %s", rs.Error.Error())
+		return 0
+	}
+	return result
+}
+
 // 内部方法。初始化一个组织（包括默认部门、管理员、默认拒信）。
 func InitNewOrg(name string, adminZjuId string, adminNickname string) (newOrgId uint32, funcError error) {
 	transactionFunc := func(tx *gorm.DB) (err error) {
