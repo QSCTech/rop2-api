@@ -14,10 +14,10 @@ services:
         condition: service_healthy
 
   mysql:
-    image: "mysql:8.4"
+    # mysql:8.4无法初始化
+    image: "mysql:8"
     environment:
       - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=rop2
     volumes:
       - rop2_db:/var/lib/mysql:rw
     healthcheck:

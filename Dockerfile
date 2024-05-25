@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.21 AS build
+# bullseye必须加上，除非更新宿主机系统和docker
+# 参考：https://github.com/docker-library/golang/issues/467#issuecomment-1601845758
+FROM golang:1.21-bullseye AS build
 
 WORKDIR /app
 
