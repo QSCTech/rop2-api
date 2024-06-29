@@ -14,6 +14,7 @@ func applicantInit(routerGroup *gin.RouterGroup) {
 	applicantGroup.GET("/org", applicantGetOrgDeparts)
 	applicantGroup.GET("/form", applicantGetFormDetail)
 	applicantGroup.POST("/form", saveForm)
+	applicantGroup.GET("/profile", applicantGetProfile)
 }
 
 // 候选人获取组织部门列表（选择志愿时使用）
@@ -97,4 +98,18 @@ func saveForm(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
+}
+
+func applicantGetProfile(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(userIdentity).getId()
+	person := model.FindPerson(id)
+	if person == nil {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+	type Profile struct {
+		ZjuId string `json:"zjuId"`
+		Phone string `json:"phone"`
+	}
+	ctx.PureJSON(200, Profile{ZjuId: person.ZjuId, Phone: person.Phone})
 }

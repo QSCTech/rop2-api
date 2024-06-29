@@ -1,7 +1,10 @@
 package model
 
 import (
+	"errors"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // 自然人信息，在所有表单都共用。其中，学号为唯一标识
@@ -29,4 +32,12 @@ func GetParticipants(formId uint32) *[]Person {
 
 func SaveProfile(zjuId string, phone string) error {
 	return db.Model(&Person{}).Where("zju_id = ?", zjuId).Update("Phone", phone).Error
+}
+
+func FindPerson(zjuId string) *Person {
+	var person Person
+	if err := db.Where("zju_id = ?", zjuId).First(&person).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil
+	}
+	return &person
 }

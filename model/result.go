@@ -20,5 +20,5 @@ func SaveResult(formId uint32, zjuId string, content string) error {
 		ZjuId:   zjuId,
 		Content: content,
 	}
-	return db.Save(result).Error
+	return db.Select("Form", "Zju_Id", "Content").Save(result).Error
 }
