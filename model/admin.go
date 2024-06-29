@@ -96,11 +96,6 @@ func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
 		return
 	}
 
-	var admin = Admin{At: at, ZjuId: zjuId, Nickname: nickname, Level: level}
-	db.
-		Table("admins").
-		Where("at = ?", at).
-		Where("zju_id = ?", zjuId).
-		Assign(admin).
-		FirstOrCreate(&admin)
+	var admin = &Admin{At: at, ZjuId: zjuId, Nickname: nickname, Level: level}
+	db.Save(admin)
 }

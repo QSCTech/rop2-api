@@ -12,3 +12,13 @@ type Result struct {
 	CreateAt time.Time `json:"createAt" gorm:"not null;autoCreateTime"`
 	UpdateAt time.Time `json:"updateAt" gorm:"not null;autoUpdateTime"`
 }
+
+//创建/更新答卷
+func SaveResult(formId uint32, zjuId string, content string) error {
+	result := &Result{
+		Form:    formId,
+		ZjuId:   zjuId,
+		Content: content,
+	}
+	return db.Save(result).Error
+}

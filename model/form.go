@@ -71,7 +71,7 @@ type FormUpdate struct {
 	EndAt   *time.Time `json:"endAt"`
 }
 
-// 修改指定
+// 修改指定表单
 func SaveForm(obj FormUpdate) error {
 	updateMap := make(map[string]interface{})
 	if obj.Name != nil {
@@ -96,17 +96,17 @@ func SaveForm(obj FormUpdate) error {
 	if obj.StartAt != nil {
 		//为unix时间戳<100即为设空，为nil保持不变
 		if obj.StartAt.Before(time.Unix(100, 0)) {
-			updateMap["StartAt"] = nil
+			updateMap["Start_At"] = nil
 		} else {
-			updateMap["StartAt"] = obj.StartAt
+			updateMap["Start_At"] = obj.StartAt
 		}
 	}
 	if obj.EndAt != nil {
-		//>2099年即为设空，为nil保持不变
-		if obj.EndAt.After(time.Unix(4070880000, 0)) {
-			updateMap["EndAt"] = nil
+		//>2048年即为设空，为nil保持不变
+		if obj.EndAt.After(time.Date(2048, 1, 1, 0, 0, 0, 0, time.Local)) {
+			updateMap["End_At"] = nil
 		} else {
-			updateMap["EndAt"] = obj.EndAt
+			updateMap["End_At"] = obj.EndAt
 		}
 	}
 	db.Table("forms").Where("id = ?", obj.Id).Updates(updateMap)
