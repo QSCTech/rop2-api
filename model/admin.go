@@ -49,19 +49,58 @@ func GetAvailableOrgs(zjuId string) []*AdminChoice {
 }
 
 type AdminProfile struct {
-	Nickname string    `json:"nickname"`
-	Level    PermLevel `json:"level"`
-	CreateAt time.Time `json:"createAt"`
+	Nickname  string    `json:"nickname"`
+	Zju_Id    string    `json:"zjuId"`
+	Level     PermLevel `json:"level"`
+	Create_At time.Time `json:"createAt"`
 }
 
-func GetAdminsInOrg(orgId uint32, offset int, limit int) []*AdminProfile {
-	results := make([]*AdminProfile, 0)
+type AdminList struct {
+	Admins        []*AdminProfile `json:"admins"`
+	Count         int64           `json:"count"`
+	FilteredCount int64           `json:"filteredCount"`
+}
+
+func GetAdminsInOrg(orgId uint32, offset int, limit int, filter string) AdminList {
+	var count int64 //指定组织下管理员总数
+	db.Table("admins").Where("at = ?", orgId).Count(&count)
+
+	if filter == "" {
+		filter = "^" //匹配所有
+	}
+	admins := make([]*AdminProfile, 0)
 	db.
 		Table("admins").
-		Select("Nickname", "Level", "CreateAt").
+		Select("Nickname", "Level", "Create_At", "Zju_Id").
 		Where("at = ?", orgId).
+		Where("nickname REGEXP ?", filter).
+		Order("Create_At DESC"). //按创建时间降序
 		Offset(offset).
 		Limit(limit).
-		Scan(&results)
-	return results
+		Scan(&admins)
+
+	var filteredCount int64
+	db.
+		Table("admins").
+		Where("at = ?", orgId).
+		Where("nickname REGEXP ?", filter).
+		Count(&filteredCount) //mysql有优化
+
+	var list = AdminList{Admins: admins, Count: count, FilteredCount: filteredCount}
+	return list
+}
+
+func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
+	if level <= Null {
+		db.Delete(&Admin{}, "at = ? and zju_id = ?", at, zjuId)
+		return
+	}
+
+	var admin = Admin{At: at, ZjuId: zjuId, Nickname: nickname, Level: level}
+	db.
+		Table("admins").
+		Where("at = ?", at).
+		Where("zju_id = ?", zjuId).
+		Assign(admin).
+		FirstOrCreate(&admin)
 }

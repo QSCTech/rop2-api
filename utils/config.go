@@ -31,7 +31,7 @@ func readEnv(envKey, defaultValue string) string {
 func Init() {
 	BindAddr = readEnv("Addr", "127.0.0.1:8080")
 	fmt.Printf("BindAddr: %s\r\n", BindAddr)
-	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&parseTime=true")
+	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true")
 
 	if readEnv("ResetDb", "false") == "true" {
 		DoResetDb = true

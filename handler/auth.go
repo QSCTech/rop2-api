@@ -293,6 +293,11 @@ func logoutAll(ctx *gin.Context) {
 	ctx.PureJSON(utils.Success())
 }
 
+// 内部方法（不是API），强制登出某个zjuId的所有登录
+func ForceLogoutAll(zjuId string) {
+	addVoidInfo(zjuId, voidBefore{before: time.Now()})
+}
+
 // 对指定的zjuId添加登录失效信息
 func addVoidInfo(zjuId string, info voidInfo) {
 	v, exists := voidMap[zjuId]

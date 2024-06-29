@@ -30,11 +30,11 @@ func main() {
 	server.Use(gin.Recovery())
 	server.SetTrustedProxies(nil)
 	server.Use(cors.New(cors.Config{
-		AllowOrigins:  []string{"*"},
+		AllowOrigins:  []string{"https://localhost:5173", "http://localhost:5173", "https://www.qsc.zju.edu.cn", "http://www.qsc.zju.edu.cn"},
 		AllowMethods:  []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:  []string{"Content-Type", "Rop-Token"},
 		ExposeHeaders: []string{"Rop-Refresh-Token"},
-		MaxAge:        12 * time.Hour,
+		MaxAge:        10 * time.Minute,
 	}))
 
 	rootRouter := &server.RouterGroup
