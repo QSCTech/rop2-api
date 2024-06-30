@@ -22,6 +22,7 @@ func main() {
 		testOrgId, _ := model.InitNewOrg("测试组织", "N/A", "测试管理员")
 		model.CreateDepart(testOrgId, "部门1")
 		model.InitNewOrg("测试组织2", "N/A", "管理员2")
+		model.CreatePerson("N/A", "test-name")
 		fmt.Printf("ResetDb done\r\n")
 	}
 

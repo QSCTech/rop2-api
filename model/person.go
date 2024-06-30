@@ -30,6 +30,10 @@ func GetParticipants(formId uint32) *[]Person {
 	return &result
 }
 
+func CreatePerson(zjuId string, name string) {
+	db.Create(&Person{ZjuId: zjuId, Name: name})
+}
+
 func SaveProfile(zjuId string, phone string) error {
 	return db.Model(&Person{}).Where("zju_id = ?", zjuId).Update("Phone", phone).Error
 }

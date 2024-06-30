@@ -15,10 +15,10 @@ type Depart struct {
 	Owner uint32 `json:"owner" gorm:"not null;uniqueIndex:uni_name_owner"` //归属组织id
 }
 
-func GetOrgDeparts(orgId uint32) *[]Depart {
+func GetOrgDeparts(orgId uint32) []Depart {
 	result := make([]Depart, 0)
 	db.Select("Id", "Name", "CreateAt").Find(&result, "owner = ?", orgId)
-	return &result
+	return result
 }
 
 func GetDepart(id uint32) *Depart {

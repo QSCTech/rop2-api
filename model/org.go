@@ -28,6 +28,7 @@ type Org struct {
 
 	DefaultDepart uint32 `json:"defaultDepart" gorm:"uniqueIndex"`
 
+	//组织是否启用部门机制
 	UseDeparts ConfigUseDeparts `json:"useDeparts" gorm:"not null;default:0"`
 }
 
