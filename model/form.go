@@ -125,3 +125,9 @@ func CreateForm(owner uint32, name string) (uint32, error) {
 	}
 	return form.Id, nil
 }
+
+// 删除表单，限定owner，受影响行数>0返回true
+func DeleteForm(owner uint32, formId uint32) bool {
+	result := db.Delete(&Form{}, "id = ? AND owner = ?", formId, owner)
+	return result.RowsAffected > 0
+}

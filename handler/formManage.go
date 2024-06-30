@@ -16,6 +16,7 @@ func formInit(routerGroup *gin.RouterGroup) {
 	formGroup.GET("/detail", getFormDetail)
 	formGroup.POST("/edit", RequireLevel(model.Maintainer), editForm)
 	formGroup.POST("/create", RequireLevel(model.Maintainer), createForm)
+	formGroup.POST("/delete", RequireLevel(model.Maintainer), deleteForm)
 }
 
 // 获取表单列表，只有简略信息：id,name,start/endAt,create/updateAt
@@ -101,4 +102,23 @@ func createForm(ctx *gin.Context) {
 		return
 	}
 	ctx.PureJSON(utils.Success())
+}
+
+func deleteForm(ctx *gin.Context) {
+	iden := ctx.MustGet("identity").(AdminIdentity)
+
+	type Arg struct {
+		FormId uint32 `json:"formId"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindJSON(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	if model.DeleteForm(iden.At, arg.FormId) {
+		ctx.PureJSON(utils.Success()) //成功删除
+		return
+	}
+	ctx.AbortWithStatusJSON(utils.MessageNotFound())
 }
