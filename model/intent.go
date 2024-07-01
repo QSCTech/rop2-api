@@ -44,6 +44,7 @@ func SaveIntents(formId uint32, zjuId string, intentDeparts []uint32) error {
 }
 
 type IntentOutline struct {
+	Id     uint32 `json:"id"` //志愿id
 	Name   string `json:"name"`
 	ZjuId  string `json:"zjuId"`
 	Phone  string `json:"phone"`
@@ -72,7 +73,7 @@ func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit i
 	intents := make([]IntentOutline, 0)
 	db.
 		Table("intents").
-		Select("people.*, intents.order, intents.depart").
+		Select("people.*, intents.order, intents.depart, intents.id").
 		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").
 		Where("intents.form = ?", formId).
 		Where("intents.depart IN ?", departs).
@@ -93,4 +94,10 @@ func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit i
 		Count(&filteredCount)
 
 	return IntentList{Intents: intents, Count: count, FilteredCount: filteredCount}
+}
+
+func SetIntents(formId uint32, intentIds []uint32, step StepType) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&Intent{}).Where("form = ? AND id IN ?", formId, intentIds).Update("step", step).Error
+	})
 }

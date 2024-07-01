@@ -13,6 +13,7 @@ func resultInit(routerGroup *gin.RouterGroup) {
 	formGroup := routerGroup.Group("/result", RequireAdminWithRefresh(true))
 
 	formGroup.GET("/intents", listIntents)
+	formGroup.POST("/set", RequireLevel(model.Maintainer), setIntents)
 }
 
 func listIntents(ctx *gin.Context) {
@@ -47,4 +48,31 @@ func listIntents(ctx *gin.Context) {
 	}
 
 	ctx.PureJSON(200, model.ListIntents(formId, departIds, arg.Step, arg.Offset, arg.Limit, arg.Filter))
+}
+
+func setIntents(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(AdminIdentity)
+	type Arg struct {
+		IntentIds []uint32       `json:"intentIds" binding:"required"`
+		Step      model.StepType `json:"step" binding:"required"`
+		FormId    uint32         `json:"formId" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindJSON(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	formId := arg.FormId
+	formInst := model.GetFormDetail(id.At, formId)
+	if formInst == nil {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+
+	if err := model.SetIntents(arg.FormId, arg.IntentIds, arg.Step); err != nil {
+		ctx.AbortWithStatusJSON(utils.Message("设置失败", 500, 11))
+		return
+	}
+	ctx.PureJSON(utils.Success())
 }
