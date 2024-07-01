@@ -117,7 +117,7 @@ func CreateForm(owner uint32, name string) (uint32, error) {
 	form := &Form{
 		Name:     name,
 		Owner:    owner,
-		Children: `[{"id":1,"children":[],"label":"默认题目组"}]`, //TODO 修改新问卷的默认问题
+		Children: `[{"id":1,"children":[],"label":"基本信息"}]`, //TODO 修改新问卷的默认问题
 	}
 	result := db.Select("Name", "Owner", "Children").Create(form)
 	if result.Error != nil {

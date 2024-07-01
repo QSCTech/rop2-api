@@ -36,7 +36,7 @@ func CreateDepart(orgId uint32, name string) (bool, *Depart) {
 		Name:  name,
 		Owner: orgId,
 	}
-	result := db.Select("Name", "owner").Create(d)
+	result := db.Select("Name", "Owner").Create(d)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 			return false, nil

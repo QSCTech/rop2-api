@@ -15,10 +15,11 @@ type Result struct {
 
 //创建/更新答卷
 func SaveResult(formId uint32, zjuId string, content string) error {
-	result := &Result{
+	obj := &Result{
 		Form:    formId,
 		ZjuId:   zjuId,
 		Content: content,
 	}
-	return db.Select("Form", "Zju_Id", "Content").Save(result).Error
+	result := db.Select("Form", "ZjuId", "Content").Save(obj)
+	return result.Error
 }

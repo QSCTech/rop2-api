@@ -13,7 +13,7 @@ type Intent struct {
 	//来源表单（也确定了申请的组织）
 	Form uint32 `json:"form" gorm:"not null;uniqueIndex:zjuid_form_intent,sort:desc"`
 	//申请人学号
-	ZjuId string `json:"zjuId" gorm:"type:char(10);uniqueIndex:zjuid_form_intent,sort:desc"`
+	ZjuId string `json:"zjuId" gorm:"type:char(10);not null;uniqueIndex:zjuid_form_intent,sort:desc"`
 	//志愿部门，可能为默认部门（如果未选择志愿部门）
 	Depart uint32 `json:"depart" gorm:"not null;uniqueIndex:zjuid_form_intent"`
 	//志愿排序。1~127=第n志愿
@@ -39,6 +39,6 @@ func SaveIntents(formId uint32, zjuId string, intentDeparts []uint32) error {
 				Order:  int8(i + 1),
 			}
 		}
-		return tx.Create(intents).Error
+		return tx.Select("Form", "ZjuId", "Depart", "Order").Create(intents).Error
 	})
 }
