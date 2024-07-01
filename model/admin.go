@@ -61,7 +61,7 @@ type AdminList struct {
 	FilteredCount int64           `json:"filteredCount"`
 }
 
-func GetAdminsInOrg(orgId uint32, offset int, limit int, filter string) AdminList {
+func GetAdminsInOrg(orgId uint32, offset, limit int, filter string) AdminList {
 	var count int64 //指定组织下管理员总数
 	db.Table("admins").Where("at = ?", orgId).Count(&count)
 

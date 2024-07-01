@@ -19,8 +19,9 @@ func listAdmins(ctx *gin.Context) {
 	//考虑加限制？
 
 	type Arg struct {
+		//注：binding:"required"会拒绝0值
 		Offset int    `form:"offset"`
-		Limit  int    `form:"limit"`
+		Limit  int    `form:"limit" binding:"required"`
 		Filter string `form:"filter"`
 	}
 	arg := &Arg{}

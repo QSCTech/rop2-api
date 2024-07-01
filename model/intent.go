@@ -42,3 +42,55 @@ func SaveIntents(formId uint32, zjuId string, intentDeparts []uint32) error {
 		return tx.Select("Form", "ZjuId", "Depart", "Order").Create(intents).Error
 	})
 }
+
+type IntentOutline struct {
+	Name   string `json:"name"`
+	ZjuId  string `json:"zjuId"`
+	Phone  string `json:"phone"`
+	Depart uint32 `json:"depart"`
+	Order  int8   `json:"order"`
+}
+type IntentList struct {
+	Intents       []IntentOutline `json:"intents"`
+	Count         int64           `json:"count"`
+	FilteredCount int64           `json:"filteredCount"`
+}
+
+func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit int, filter string) IntentList {
+	var count int64 //在指定部门、阶段的总志愿数
+	db.Table("intents").
+		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").
+		Where("intents.form = ?", formId).
+		Where("intents.depart IN ?", departs).
+		Where("intents.step = ?", step).
+		Count(&count)
+
+	if filter == "" {
+		filter = "^" //匹配所有
+	}
+
+	intents := make([]IntentOutline, 0)
+	db.
+		Table("intents").
+		Select("people.*, intents.order, intents.depart").
+		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").
+		Where("intents.form = ?", formId).
+		Where("intents.depart IN ?", departs).
+		Where("intents.step = ?", step).
+		Where("people.name REGEXP ? OR people.zju_id REGEXP ? OR people.phone REGEXP ?", filter, filter, filter).
+		Order("intents.create_at ASC, intents.order ASC").
+		Offset(offset).Limit(limit).
+		Scan(&intents)
+
+	var filteredCount int64 //在指定部门、阶段+filter过滤后的志愿数
+	db.
+		Table("intents").
+		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").
+		Where("intents.form = ?", formId).
+		Where("intents.depart IN ?", departs).
+		Where("intents.step = ?", step).
+		Where("people.name REGEXP ? OR people.zju_id REGEXP ? OR people.phone REGEXP ?", filter, filter, filter).
+		Count(&filteredCount)
+
+	return IntentList{Intents: intents, Count: count, FilteredCount: filteredCount}
+}
