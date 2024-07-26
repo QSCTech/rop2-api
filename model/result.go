@@ -15,11 +15,25 @@ type Result struct {
 
 //创建/更新答卷
 func SaveResult(formId uint32, zjuId string, content string) error {
-	obj := &Result{
-		Form:    formId,
-		ZjuId:   zjuId,
-		Content: content,
+	lastResult := Result{}
+	db.Where("form = ? AND zju_id = ?", formId, zjuId).First(&lastResult)
+	if lastResult.Form == formId && lastResult.ZjuId == zjuId {
+		//更新
+		result := db.Model(&Result{}).Where("form = ? AND zju_id = ?", formId, zjuId).Update("Content", content)
+		return result.Error
+	} else {
+		//创建
+		result := db.Create(&Result{
+			Form:    formId,
+			ZjuId:   zjuId,
+			Content: content,
+		})
+		return result.Error
 	}
-	result := db.Select("Form", "ZjuId", "Content").Save(obj)
-	return result.Error
+}
+
+func GetResults(formId uint32, zjuIds []string) *[]Result {
+	arr := &[]Result{}
+	db.Where(("form = ? AND zju_id IN ?"), formId, zjuIds).Find(arr)
+	return arr
 }

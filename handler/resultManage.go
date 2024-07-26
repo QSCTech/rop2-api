@@ -13,6 +13,7 @@ func resultInit(routerGroup *gin.RouterGroup) {
 	formGroup := routerGroup.Group("/result", RequireAdminWithRefresh(true))
 
 	formGroup.GET("/intents", listIntents)
+	formGroup.GET("", listResults)
 	formGroup.POST("/set", RequireLevel(model.Maintainer), setIntents)
 }
 
@@ -50,12 +51,37 @@ func listIntents(ctx *gin.Context) {
 	ctx.PureJSON(200, model.ListIntents(formId, departIds, arg.Step, arg.Offset, arg.Limit, arg.Filter))
 }
 
+func listResults(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(AdminIdentity)
+	type Arg struct {
+		//注：binding:"required"会拒绝0值
+		FormId uint32 `form:"formId" binding:"required"`
+		Target string `form:"target" binding:"required"` //格式: 3230101001,3230101002
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	formId := arg.FormId
+	formInst := model.GetFormDetail(id.At, formId)
+	if formInst == nil {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+
+	targetIds := strings.Split(arg.Target, ",")
+	ctx.PureJSON(200, model.GetResults(formId, targetIds))
+}
+
 func setIntents(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(AdminIdentity)
 	type Arg struct {
-		IntentIds []uint32       `json:"intentIds" binding:"required"`
-		Step      model.StepType `json:"step" binding:"required"`
-		FormId    uint32         `json:"formId" binding:"required"`
+		IntentIds []uint32 `json:"intentIds" binding:"required"`
+		//允许设成0 即已填表
+		Step   model.StepType `json:"step"`
+		FormId uint32         `json:"formId" binding:"required"`
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindJSON(arg) != nil {
