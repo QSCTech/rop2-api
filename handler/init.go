@@ -11,5 +11,6 @@ func Init(routerGroup *gin.RouterGroup) {
 	formInit(routerGroup)
 	resultInit(routerGroup)
 	adminInit(routerGroup)
+	interviewInit(routerGroup)
 	applicantInit(routerGroup)
 }

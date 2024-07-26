@@ -29,7 +29,7 @@ func ResetDb() {
 	db.Exec("CREATE DATABASE rop2;")
 	db.Exec("USE rop2;")
 	migrator := db.Migrator()
-	migrator.AutoMigrate(&Org{}, &Depart{}, &Admin{}, &Template{}, &Stage{}, &Form{}, &Person{}, &Intent{}, &Result{})
+	migrator.AutoMigrate(&Org{}, &Depart{}, &Admin{}, &Template{}, &Stage{}, &Form{}, &Person{}, &Intent{}, &Result{}, &Interview{})
 
 	//建表完成，添加外键
 	const restrict, cascade, setNull = "RESTRICT", "CASCADE", "SET NULL"
@@ -63,6 +63,9 @@ func ResetDb() {
 
 	db.Exec(fkBuilder("results", "zju_id", "people", "zju_id", cascade))
 	db.Exec(fkBuilder("results", "form", "forms", "id", cascade))
+
+	db.Exec(fkBuilder("interviews", "form", "forms", "id", cascade))
+	db.Exec(fkBuilder("interviews", "depart", "departs", "id", cascade))
 
 	//数据库初始化完成，但不添加任何测试数据
 }

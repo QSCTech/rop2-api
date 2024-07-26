@@ -35,9 +35,9 @@ func GetForms(owner uint32) []*Form {
 }
 
 // 检查指定表单id是否为指定组织所创建
-func CheckOwner(owner uint32, id uint32) bool {
+func CheckFormOwner(owner uint32, formId uint32) bool {
 	var count int64
-	db.Table("forms").Where("id = ? AND owner = ?", id, owner).Count(&count)
+	db.Table("forms").Where("id = ? AND owner = ?", formId, owner).Count(&count)
 	return count > 0
 }
 

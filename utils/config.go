@@ -33,7 +33,7 @@ func Init() {
 	fmt.Printf("BindAddr: %s\r\n", BindAddr)
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true")
 
-	if readEnv("ResetDb", "false") == "true" {
+	if readEnv("ResetDb", "false") == "true" || (len(os.Args) > 1 && os.Args[1] == "reset") {
 		DoResetDb = true
 	}
 

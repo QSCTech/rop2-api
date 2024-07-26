@@ -35,8 +35,7 @@ func listIntents(ctx *gin.Context) {
 	}
 
 	formId := arg.FormId
-	formInst := model.GetFormDetail(id.At, formId)
-	if formInst == nil {
+	if !model.CheckFormOwner(id.At, formId) {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
@@ -65,8 +64,7 @@ func listResults(ctx *gin.Context) {
 	}
 
 	formId := arg.FormId
-	formInst := model.GetFormDetail(id.At, formId)
-	if formInst == nil {
+	if !model.CheckFormOwner(id.At, formId) {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
@@ -90,8 +88,7 @@ func setIntents(ctx *gin.Context) {
 	}
 
 	formId := arg.FormId
-	formInst := model.GetFormDetail(id.At, formId)
-	if formInst == nil {
+	if !model.CheckFormOwner(id.At, formId) {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}

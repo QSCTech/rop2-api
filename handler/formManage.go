@@ -61,7 +61,7 @@ func editForm(ctx *gin.Context) {
 	}
 	formId := formUpdate.Id
 	orgId := iden.At
-	if !model.CheckOwner(orgId, formId) {
+	if !model.CheckFormOwner(orgId, formId) {
 		ctx.AbortWithStatusJSON(utils.MessageForbidden())
 		return
 	}
@@ -119,6 +119,7 @@ func deleteForm(ctx *gin.Context) {
 	if model.DeleteForm(iden.At, arg.FormId) {
 		ctx.PureJSON(utils.Success()) //成功删除
 		return
+	} else {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 	}
-	ctx.AbortWithStatusJSON(utils.MessageNotFound())
 }
