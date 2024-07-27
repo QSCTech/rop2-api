@@ -2,25 +2,25 @@ package model
 
 import "time"
 
-type InviewStatus int8
+type InterviewStatus int8
 
 const (
 	//默认，人满就关
-	Auto InviewStatus = 0
+	Auto InterviewStatus = 0
 	//无限容量，Capacity无效
-	Unlimited InviewStatus = 10
+	Unlimited InterviewStatus = 10
 	//被管理员手动冻结，不可报名/不可取消
-	Frozen InviewStatus = 20
+	Frozen InterviewStatus = 20
 )
 
 type Interview struct {
 	Id uint32 `json:"id" gorm:"primaryKey;autoIncrement"`
 
-	Form     uint32       `json:"form" gorm:"not null"`
-	Depart   uint32       `json:"depart" gorm:"not null"`
-	Step     StepType     `json:"step" gorm:"not null"`
-	Capacity int32        `json:"capacity" gorm:"not null"`
-	Status   InviewStatus `json:"status" gorm:"not null;default:0"`
+	Form     uint32          `json:"form" gorm:"not null"`
+	Depart   uint32          `json:"depart" gorm:"not null"`
+	Step     StepType        `json:"step" gorm:"not null"`
+	Capacity int32           `json:"capacity" gorm:"not null"`
+	Status   InterviewStatus `json:"status" gorm:"not null;default:0"`
 
 	//面试详情
 	Location string    `json:"location" gorm:"not null"`
@@ -40,9 +40,34 @@ func GetInterview(id uint32) *Interview {
 	}
 }
 
-func GetInterviews(formId uint32, departs []uint32, step StepType) []Interview {
-	var interviews []Interview
-	db.Where("form = ? AND depart IN ? AND step = ?", formId, departs, step).Find(&interviews)
+type InterviewInfo struct {
+	Id uint32 `json:"id" gorm:"primaryKey;autoIncrement"`
+
+	Depart   uint32          `json:"depart"`
+	Step     StepType        `json:"step"`
+	Capacity int32           `json:"capacity"`
+	Status   InterviewStatus `json:"status" gorm:"not null;default:0"`
+
+	//面试详情
+	Location string    `json:"location"`
+	StartAt  time.Time `json:"startAt"`
+	EndAt    time.Time `json:"endAt"`
+
+	UsedCapacity int32 `json:"usedCapacity"`
+}
+
+func GetInterviews(formId uint32, departs []uint32, step StepType) []InterviewInfo {
+	var interviews []InterviewInfo = make([]InterviewInfo, 0)
+	db.
+		Select(
+			"interviews.id", "interviews.depart", "interviews.step", "interviews.capacity", "interviews.status",
+			"interviews.location", "interviews.start_at", "interviews.end_at",
+					"COUNT(interview_schedules.zju_id) AS UsedCapacity").
+		Table("interviews"). //from子句
+		Joins("LEFT JOIN interview_schedules ON (interviews.id = interview_schedules.interview)").
+		Where("interviews.form = ? AND interviews.depart IN ? AND interviews.step = ?", formId, departs, step).
+		Group("interviews.id").
+		Scan(&interviews)
 	return interviews
 }
 
