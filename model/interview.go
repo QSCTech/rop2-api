@@ -40,13 +40,14 @@ func GetInterview(id uint32) *Interview {
 	}
 }
 
+//面试基本信息，包括已用容量。没有createAt和updateAt
 type InterviewInfo struct {
-	Id uint32 `json:"id" gorm:"primaryKey;autoIncrement"`
+	Id uint32 `json:"id"`
 
 	Depart   uint32          `json:"depart"`
 	Step     StepType        `json:"step"`
 	Capacity int32           `json:"capacity"`
-	Status   InterviewStatus `json:"status" gorm:"not null;default:0"`
+	Status   InterviewStatus `json:"status"`
 
 	//面试详情
 	Location string    `json:"location"`
@@ -88,4 +89,8 @@ func AddInterview(formId, depart uint32, step StepType, capacity int32, location
 
 func DeleteInterview(id uint32) error {
 	return db.Delete(&Interview{}, id).Error
+}
+
+func FreezeInterview(id uint32) error {
+	return db.Model(&Interview{}).Where("id = ?", id).Update("status", Frozen).Error
 }

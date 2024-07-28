@@ -16,6 +16,10 @@ func interviewInit(routerGroup *gin.RouterGroup) {
 	interviewGroup.GET("", getInterviews)
 	interviewGroup.POST("/add", RequireLevel(model.Maintainer), addInterview)
 	interviewGroup.POST("/delete", RequireLevel(model.Maintainer), deleteInterview)
+	interviewGroup.POST("/freeze", RequireLevel(model.Maintainer), freezeInterview)
+	interviewGroup.GET("/schedule", getInterviewScheduledIds)
+	interviewGroup.POST("/schedule/delete", RequireLevel(model.Maintainer), deleteInterviewSchedule)
+	interviewGroup.POST("/schedule/add", RequireLevel(model.Maintainer), addInterviewSchedule)
 }
 
 func getInterviews(ctx *gin.Context) {
@@ -45,6 +49,15 @@ func getInterviews(ctx *gin.Context) {
 	}
 
 	ctx.PureJSON(200, model.GetInterviews(formId, departIds, arg.Step))
+}
+
+func checkInterviewOwner(id AdminIdentity, interviewId uint32) (bool, *model.Interview) {
+	interviewInst := model.GetInterview(interviewId)
+	if interviewInst == nil {
+		return false, nil
+	} else {
+		return model.CheckFormOwner(id.At, interviewInst.Form), interviewInst
+	}
 }
 
 func addInterview(ctx *gin.Context) {
@@ -89,20 +102,101 @@ func deleteInterview(ctx *gin.Context) {
 	}
 
 	interviewId := arg.Id
-	if !model.CheckFormOwner(id.At, interviewId) {
-		ctx.AbortWithStatusJSON(utils.MessageNotFound())
-		return
-	}
-
-	interviewInst := model.GetInterview(interviewId)
-	if interviewInst == nil || !model.CheckFormOwner(id.At, interviewInst.Form) {
+	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 
 	if err := model.DeleteInterview(interviewId); err != nil {
-		ctx.PureJSON(utils.MessageNotFound())
+		ctx.PureJSON(utils.Message("删除失败: "+err.Error(), 500, 1))
 		return
 	}
+	ctx.PureJSON(utils.Success())
+}
+
+func freezeInterview(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(AdminIdentity)
+	type Arg struct {
+		Id uint32 `json:"id" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindJSON(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	interviewId := arg.Id
+	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+
+	model.FreezeInterview(interviewId)
+	ctx.PureJSON(utils.Success())
+}
+
+// 获取报名某场面试的所有学生
+func getInterviewScheduledIds(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(AdminIdentity)
+	type Arg struct {
+		Id uint32 `form:"id" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	interviewId := arg.Id
+	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+
+	ctx.PureJSON(200, model.GetScheduledIds(interviewId))
+}
+
+func deleteInterviewSchedule(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(AdminIdentity)
+	type Arg struct {
+		Id    uint32         `json:"id" binding:"required"`
+		ZjuId model.PersonId `json:"zjuId" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindJSON(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	interviewId := arg.Id
+	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+
+	model.RemoveScheduledId(interviewId, arg.ZjuId)
+	ctx.PureJSON(utils.Success())
+}
+
+// 添加面试安排，不检查唯一性。管理员可以给一个学生添加多个面试安排
+func addInterviewSchedule(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(AdminIdentity)
+	type Arg struct {
+		Id    uint32         `json:"id" binding:"required"`
+		ZjuId model.PersonId `json:"zjuId" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindJSON(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	interviewId := arg.Id
+	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+
+	model.AddScheduledId(interviewId, arg.ZjuId)
 	ctx.PureJSON(utils.Success())
 }
