@@ -19,3 +19,4 @@ rop2-web的配套api。
 - JSON序列化时会将对象按键名排序
 - map\[x\]y是无序的
 - 导入包不能有循环依赖，如utils不能再导入model handler等
+- gorm的bug|feature比你想象的要多。请谨慎使用`Save`。

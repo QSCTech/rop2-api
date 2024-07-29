@@ -31,7 +31,7 @@ type Interview struct {
 	UpdateAt time.Time `json:"updateAt" gorm:"not null;autoUpdateTime"`
 }
 
-func GetInterview(id uint32) *Interview {
+func GetInterviewById(id uint32) *Interview {
 	var obj Interview
 	if db.First(&obj, id).Error != nil {
 		return nil

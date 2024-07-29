@@ -11,7 +11,8 @@ import (
 
 var db *gorm.DB
 
-var TestOrgId uint32 = 0
+// TODO 测试组织ID，会给所有登录用户添加权限，正式环境应删除
+var TestOrgId uint32 = 1
 
 func Init() {
 	var err error
@@ -27,6 +28,8 @@ func Init() {
 	db.Model(&Org{}).Where("name = ?", "测试组织").Limit(1).Pluck("id", &testOrgIds)
 	if len(testOrgIds) > 0 {
 		TestOrgId = testOrgIds[0]
+	} else {
+		fmt.Println("未找到测试组织(name = ?)")
 	}
 }
 
@@ -53,7 +56,7 @@ func ResetDb() {
 		return strings.Join(lines, "\n")
 	}
 
-	db.Exec(fkBuilder("orgs", "default_depart", "departs", "id", restrict)) //默认部门不能删除（只能随组织一起删除）
+	db.Exec(fkBuilder("orgs", "default_depart", "departs", "id", cascade))
 
 	db.Exec(fkBuilder("departs", "owner", "orgs", "id", cascade)) //删除组织时自动删除所有部门
 

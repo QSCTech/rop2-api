@@ -1,4 +1,4 @@
-name: rop2-api
+# name: rop2-api
 
 services:
   go-server:
@@ -9,7 +9,8 @@ services:
       # - GIN_MODE=release
       - ROP2_Addr=0.0.0.0:8080
       - ROP2_DSN=root:root@tcp(mysql:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true
-      - ROP2_LoginCallbackRegex=^https?://www.qsc.zju.edu.cn(/.*)?$
+      # 注意这里$要转义
+      - ROP2_LoginCallbackRegex=^https?://(www\.qsc\.zju\.edu\.cn|localhost:5173)(/.*)?$$
     depends_on:
       mysql:
         condition: service_healthy

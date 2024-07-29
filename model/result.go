@@ -32,8 +32,23 @@ func SaveResult(formId uint32, zjuId string, content string) error {
 	}
 }
 
-func GetResults(formId uint32, zjuIds []string) *[]Result {
-	arr := &[]Result{}
-	db.Where(("form = ? AND zju_id IN ?"), formId, zjuIds).Find(arr)
-	return arr
+type ResultDetail struct {
+	Name    string `json:"name"`
+	Phone   string `json:"phone"`
+	Content string `json:"content"`
+}
+
+func GetResult(formId uint32, zjuId string) *ResultDetail {
+	contentArr := make([]string, 0)
+	db.Model(&Result{}).Where("form = ? AND zju_id = ?", formId, zjuId).Pluck("content", &contentArr)
+	if len(contentArr) == 0 {
+		return nil
+	}
+	content := contentArr[0]
+	person := FindPerson(zjuId)
+	return &ResultDetail{
+		Name:    person.Name,
+		Phone:   *(person.Phone),
+		Content: content,
+	}
 }

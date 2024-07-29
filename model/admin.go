@@ -102,5 +102,5 @@ func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
 	}
 
 	var admin = &Admin{At: at, ZjuId: zjuId, Nickname: nickname, Level: level}
-	db.Save(admin)
+	db.Select("nickname", "level").Save(admin)
 }

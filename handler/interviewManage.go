@@ -13,16 +13,18 @@ import (
 func interviewInit(routerGroup *gin.RouterGroup) {
 	interviewGroup := routerGroup.Group("/interview", RequireAdminWithRefresh(true))
 
-	interviewGroup.GET("", getInterviews)
+	interviewGroup.GET("", listInterviews)
+	interviewGroup.GET("/detail", getInterviewDetail)
 	interviewGroup.POST("/add", RequireLevel(model.Maintainer), addInterview)
 	interviewGroup.POST("/delete", RequireLevel(model.Maintainer), deleteInterview)
 	interviewGroup.POST("/freeze", RequireLevel(model.Maintainer), freezeInterview)
+
 	interviewGroup.GET("/schedule", getInterviewScheduledIds)
 	interviewGroup.POST("/schedule/delete", RequireLevel(model.Maintainer), deleteInterviewSchedule)
 	interviewGroup.POST("/schedule/add", RequireLevel(model.Maintainer), addInterviewSchedule)
 }
 
-func getInterviews(ctx *gin.Context) {
+func listInterviews(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(AdminIdentity)
 	type Arg struct {
 		FormId uint32         `form:"formId" binding:"required"`
@@ -51,8 +53,28 @@ func getInterviews(ctx *gin.Context) {
 	ctx.PureJSON(200, model.GetInterviews(formId, departIds, arg.Step))
 }
 
+func getInterviewDetail(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(AdminIdentity)
+	type Arg struct {
+		Id uint32 `form:"id" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	interviewId := arg.Id
+	qualified, interviewInst := checkInterviewOwner(id, interviewId)
+	if !qualified {
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+	ctx.PureJSON(200, interviewInst)
+}
+
 func checkInterviewOwner(id AdminIdentity, interviewId uint32) (bool, *model.Interview) {
-	interviewInst := model.GetInterview(interviewId)
+	interviewInst := model.GetInterviewById(interviewId)
 	if interviewInst == nil {
 		return false, nil
 	} else {

@@ -17,6 +17,8 @@ var (
 	AdminTokenDuration     time.Duration = time.Hour * 24 * 2 //管理员不操作多久后token失效
 	ApplicantTokenDuration time.Duration = time.Hour * 24 * 7 //候选人不操作多久后token失效
 
+	KeyValidSince time.Time = time.Now()
+
 	IdentityKey []byte //加密凭据的私钥
 
 	DoResetDb bool = false

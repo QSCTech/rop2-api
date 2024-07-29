@@ -140,6 +140,10 @@ func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T) bool {
 		ctx.AbortWithStatusJSON(code401("token已过期", 11))
 		return false
 	}
+	if (*resultPointer).getIat().Before(utils.KeyValidSince) {
+		ctx.AbortWithStatusJSON(code401("token签发过早", 12))
+		return false
+	}
 	if validSign := utils.HmacSha256(jsonBytes, utils.IdentityKey); !bytes.Equal(validSign, signBytes) {
 		ctx.AbortWithStatusJSON(code401("token验签失败", 21))
 		return false

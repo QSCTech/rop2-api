@@ -28,3 +28,14 @@ func AddScheduledId(interviewId uint32, zjuId PersonId) {
 		Interview: interviewId,
 	})
 }
+
+//查看对于指定志愿是否安排了面试
+func GetScheduleByIntent(formId uint32, zjuId PersonId, depart uint32, step StepType) *Intent {
+	var intent Intent
+	if db.Where("form = ? AND zju_id = ? AND depart = ? AND step = ?", formId, zjuId, depart, step).First(&intent).Error != nil ||
+		//防止不返回RecordNotFound错误
+		intent.Form != formId {
+		return nil
+	}
+	return &intent
+}

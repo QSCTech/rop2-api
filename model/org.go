@@ -59,7 +59,7 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) (newOrgId 
 			Name: name,
 		}
 		if err = tx.Select("Name").Create(org).Error; err != nil {
-			return
+			return err
 		}
 		newOrgId = org.Id
 		defaultDepart := &Depart{
@@ -67,11 +67,11 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) (newOrgId 
 			Owner: org.Id,
 		}
 		if err = tx.Select("Name", "Owner").Create(defaultDepart).Error; err != nil {
-			return
+			return err
 		}
 		org.DefaultDepart = defaultDepart.Id
 		if err = tx.Select("DefaultDepart").Save(org).Error; err != nil {
-			return
+			return err
 		}
 		admin := &Admin{
 			ZjuId:    adminZjuId,
@@ -80,7 +80,7 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) (newOrgId 
 			Level:    Maintainer,
 		}
 		if err = tx.Select("ZjuId", "At", "Nickname", "Level").Create(admin).Error; err != nil {
-			return
+			return err
 		}
 		//一些默认文本可能需要修改
 		defaultRejectTemplate, defaultAcceptTemplate :=
@@ -95,10 +95,10 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) (newOrgId 
 				Content: "感谢您参与{表单}，您已成功加入{组织}。",
 			}
 		if err = tx.Select("Owner", "Name", "Content").Create(defaultRejectTemplate).Error; err != nil {
-			return
+			return err
 		}
 		if err = tx.Select("Owner", "Name", "Content").Create(defaultAcceptTemplate).Error; err != nil {
-			return
+			return err
 		}
 		defaultRejectStage, defaultAcceptStage :=
 			&Stage{
@@ -112,10 +112,10 @@ func InitNewOrg(name string, adminZjuId string, adminNickname string) (newOrgId 
 				OnEnter: &defaultAcceptTemplate.Id,
 			}
 		if err = tx.Select("Owner", "Step", "OnEnter").Create(defaultRejectStage).Error; err != nil {
-			return
+			return err
 		}
 		if err = tx.Select("Owner", "Step", "OnEnter").Create(defaultAcceptStage).Error; err != nil {
-			return
+			return err
 		}
 
 		//成功完成，没有错误

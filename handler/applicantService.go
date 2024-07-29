@@ -15,6 +15,10 @@ func applicantInit(routerGroup *gin.RouterGroup) {
 	applicantGroup.GET("/form", applicantGetFormDetail)
 	applicantGroup.POST("/form", saveForm)
 	applicantGroup.GET("/profile", applicantGetProfile)
+
+	applicantGroup.GET("/status", applicantGetStatus)
+	applicantGroup.GET("/interview", applicantGetInterviewList)
+	applicantGroup.POST("/interview/schedule", applicantScheduleInterview)
 }
 
 // 候选人获取组织部门列表（选择志愿时使用）
@@ -130,5 +134,78 @@ func applicantGetProfile(ctx *gin.Context) {
 		ZjuId string `json:"zjuId"`
 		Phone string `json:"phone"`
 	}
-	ctx.PureJSON(200, Profile{ZjuId: person.ZjuId, Phone: person.Phone})
+	ctx.PureJSON(200, Profile{ZjuId: person.ZjuId, Phone: *person.Phone})
+}
+
+func applicantGetStatus(ctx *gin.Context) {
+	type Arg struct {
+		FormId uint32 `form:"formId" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+	zjuId := ctx.MustGet("identity").(userIdentity).getId()
+
+	ctx.PureJSON(200, model.QueryIntentsOfPerson(arg.FormId, zjuId))
+}
+
+func applicantGetInterviewList(ctx *gin.Context) {
+	type Arg struct {
+		FormId   uint32 `form:"formId" binding:"required"`
+		DepartId uint32 `form:"departId" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+	zjuId := ctx.MustGet("identity").(userIdentity).getId()
+
+	formId := arg.FormId
+
+	intents := model.QueryIntentsOfPerson(formId, zjuId)
+	for _, v := range intents {
+		if v.Depart == arg.DepartId {
+			step := v.Step
+			ctx.PureJSON(200, model.GetInterviews(formId, []uint32{arg.DepartId}, step))
+			return
+		}
+	}
+	ctx.PureJSON(utils.MessageNotFound())
+}
+
+func applicantScheduleInterview(ctx *gin.Context) {
+	type Arg struct {
+		FormId      uint32 `form:"formId" binding:"required"`
+		InterviewId uint32 `form:"interviewId" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+	zjuId := ctx.MustGet("identity").(userIdentity).getId()
+
+	formId := arg.FormId
+	intents := model.QueryIntentsOfPerson(formId, zjuId)
+	interviewInst := model.GetInterviewById(arg.InterviewId)
+	if interviewInst == nil { //面试不存在
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+		return
+	}
+
+	if model.GetScheduleByIntent(formId, zjuId, interviewInst.Depart, interviewInst.Step) != nil { //已经安排了面试
+		ctx.AbortWithStatusJSON(utils.Message("已安排面试", 400, 31))
+		return
+	}
+	for _, v := range intents { //对所有志愿遍历，看有没有符合阶段和部门的
+		if v.Depart == interviewInst.Depart && v.Step == interviewInst.Step {
+			model.AddScheduledId(arg.InterviewId, zjuId)
+			ctx.PureJSON(utils.Success())
+			return
+		}
+	}
+	ctx.PureJSON(utils.MessageNotFound())
 }

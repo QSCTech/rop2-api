@@ -13,7 +13,7 @@ func resultInit(routerGroup *gin.RouterGroup) {
 	formGroup := routerGroup.Group("/result", RequireAdminWithRefresh(true))
 
 	formGroup.GET("/intents", listIntents)
-	formGroup.GET("", listResults)
+	formGroup.GET("", getResultDetail)
 	formGroup.POST("/set", RequireLevel(model.Maintainer), setIntents)
 }
 
@@ -50,12 +50,12 @@ func listIntents(ctx *gin.Context) {
 	ctx.PureJSON(200, model.ListIntents(formId, departIds, arg.Step, arg.Offset, arg.Limit, arg.Filter))
 }
 
-func listResults(ctx *gin.Context) {
+func getResultDetail(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(AdminIdentity)
 	type Arg struct {
 		//注：binding:"required"会拒绝0值
 		FormId uint32 `form:"formId" binding:"required"`
-		Target string `form:"target" binding:"required"` //格式: 3230101001,3230101002
+		Target string `form:"target" binding:"required"`
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindQuery(arg) != nil {
@@ -69,8 +69,7 @@ func listResults(ctx *gin.Context) {
 		return
 	}
 
-	targetIds := strings.Split(arg.Target, ",")
-	ctx.PureJSON(200, model.GetResults(formId, targetIds))
+	ctx.PureJSON(200, model.GetResult(formId, arg.Target))
 }
 
 func setIntents(ctx *gin.Context) {
