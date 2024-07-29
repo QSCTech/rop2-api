@@ -11,6 +11,8 @@ import (
 
 var db *gorm.DB
 
+var TestOrgId uint32 = 0
+
 func Init() {
 	var err error
 	db, err = gorm.Open(mysql.Open(utils.DSN), &gorm.Config{
@@ -20,6 +22,11 @@ func Init() {
 	})
 	if err != nil {
 		panic(err)
+	}
+	var testOrgIds []uint32
+	db.Model(&Org{}).Where("name = ?", "测试组织").Limit(1).Pluck("id", &testOrgIds)
+	if len(testOrgIds) > 0 {
+		TestOrgId = testOrgIds[0]
 	}
 }
 
@@ -75,4 +82,7 @@ func ResetDb() {
 	db.Exec(fkBuilder("interview_schedules", "step", "stages", "id", cascade))
 
 	//数据库初始化完成，但不添加任何测试数据
+
+	TestOrgId, _ := InitNewOrg("测试组织", "_", "测试管理员")
+	CreateDepart(TestOrgId, "部门1")
 }

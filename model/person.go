@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // TODO: 把类型为string的zjuId改为PersonId方便后面修改
@@ -34,8 +35,9 @@ func GetParticipants(formId uint32) *[]Person {
 	return &result
 }
 
-func CreatePerson(zjuId string, name string) {
-	db.Create(&Person{ZjuId: zjuId, Name: name})
+// 创建自然人信息，如果已存在则更新
+func EnsurePerson(zjuId string, name string) {
+	db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&Person{ZjuId: zjuId, Name: name})
 }
 
 func SaveProfile(zjuId string, phone string) error {

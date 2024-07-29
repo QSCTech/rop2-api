@@ -3,12 +3,14 @@ package utils
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 )
 
 var (
-	BindAddr string
-	DSN      string
+	BindAddr           string
+	DSN                string
+	LoginCallbackRegex regexp.Regexp
 
 	//自动刷新token距token签发需经过的时间
 	TokenRefreshAfter      time.Duration = 300 * time.Second
@@ -32,6 +34,7 @@ func Init() {
 	BindAddr = readEnv("Addr", "127.0.0.1:8080")
 	fmt.Printf("BindAddr: %s\r\n", BindAddr)
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true")
+	LoginCallbackRegex = *regexp.MustCompile(readEnv("LoginCallbackRegex", "^http://localhost:5173(/.*)?$"))
 
 	if readEnv("ResetDb", "false") == "true" || (len(os.Args) > 1 && os.Args[1] == "reset") {
 		DoResetDb = true

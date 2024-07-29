@@ -105,15 +105,15 @@ func saveForm(ctx *gin.Context) {
 		intentDeparts = []uint32{defaultDepartId}
 	}
 	if err := model.SaveResult(formId, id, arg.Content); err != nil {
-		ctx.AbortWithStatusJSON(utils.Message("问卷提交失败", 500, 11))
+		ctx.AbortWithStatusJSON(utils.Message("问卷提交失败(答案保存失败)", 500, 11))
 		return
 	}
 	if err := model.SaveIntents(formId, id, intentDeparts); err != nil {
-		ctx.AbortWithStatusJSON(utils.Message("问卷提交失败", 500, 11))
+		ctx.AbortWithStatusJSON(utils.Message("问卷提交失败(志愿生成失败)", 500, 11))
 		return
 	}
 	if err := model.SaveProfile(id, arg.Phone); err != nil {
-		ctx.AbortWithStatusJSON(utils.Message("个人信息保存失败", 500, 12))
+		ctx.AbortWithStatusJSON(utils.Message("个人信息保存失败", 400, 12))
 		return
 	}
 	ctx.PureJSON(utils.Success())

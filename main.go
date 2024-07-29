@@ -11,6 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var TestOrgId uint32
+
 func main() {
 	utils.Init() //读取配置
 
@@ -19,10 +21,6 @@ func main() {
 	if utils.DoResetDb || model.CountOrg() <= 0 {
 		fmt.Printf("Starting ResetDb\r\n")
 		model.ResetDb()
-		testOrgId, _ := model.InitNewOrg("测试组织", "N/A", "测试管理员")
-		model.CreateDepart(testOrgId, "部门1")
-		model.InitNewOrg("测试组织2", "N/A", "管理员2")
-		model.CreatePerson("N/A", "test-name")
 		fmt.Printf("ResetDb done\r\n")
 	}
 
@@ -35,7 +33,7 @@ func main() {
 		AllowMethods:  []string{"GET", "POST", "OPTIONS"},
 		AllowHeaders:  []string{"Content-Type", "Rop-Token"},
 		ExposeHeaders: []string{"Rop-Refresh-Token"},
-		MaxAge:        10 * time.Minute,
+		MaxAge:        10 * time.Minute, //根据规范，预检请求缓存时间不超过10min
 	}))
 
 	rootRouter := &server.RouterGroup

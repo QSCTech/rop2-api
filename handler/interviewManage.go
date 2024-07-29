@@ -107,10 +107,7 @@ func deleteInterview(ctx *gin.Context) {
 		return
 	}
 
-	if err := model.DeleteInterview(interviewId); err != nil {
-		ctx.PureJSON(utils.Message("删除失败: "+err.Error(), 500, 1))
-		return
-	}
+	model.DeleteInterview(interviewId)
 	ctx.PureJSON(utils.Success())
 }
 

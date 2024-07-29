@@ -9,6 +9,7 @@ services:
       # - GIN_MODE=release
       - ROP2_Addr=0.0.0.0:8080
       - ROP2_DSN=root:root@tcp(mysql:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true
+      - ROP2_LoginCallbackRegex=^https?://www.qsc.zju.edu.cn(/.*)?$
     depends_on:
       mysql:
         condition: service_healthy

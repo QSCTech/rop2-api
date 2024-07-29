@@ -44,7 +44,12 @@ type AdminChoice struct {
 
 func GetAvailableOrgs(zjuId string) []*AdminChoice {
 	profiles := make([]*AdminChoice, 2)
-	db.Table("admins").Select("orgs.name as OrgName", "admins.at as OrgId").Joins("JOIN orgs ON admins.at = orgs.id").Where("admins.zju_id = ?", zjuId).Scan(&profiles)
+	db.
+		Table("admins").
+		Select("orgs.name as OrgName", "admins.at as OrgId").
+		Joins("JOIN orgs ON admins.at = orgs.id").
+		Where("admins.zju_id = ?", zjuId).
+		Scan(&profiles)
 	return profiles
 }
 
@@ -97,5 +102,5 @@ func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
 	}
 
 	var admin = &Admin{At: at, ZjuId: zjuId, Nickname: nickname, Level: level}
-	db.Select("Nickname", "Level").Save(admin)
+	db.Save(admin)
 }

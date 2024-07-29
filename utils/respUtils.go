@@ -63,3 +63,11 @@ func MessageInvalidLength(isTooShort bool) (int, *CodeMessageObj) {
 	}
 	return Message("文本长度"+subMessage, 422, subCode)
 }
+
+//服务器内部错误(500 Internal Server Error)，code为500001
+func MessageInternalError(extCode ...int) (int, *CodeMessageObj) {
+	if len(extCode) == 0 {
+		extCode = []int{1}
+	}
+	return Message("服务器内部错误", 500, extCode...)
+}

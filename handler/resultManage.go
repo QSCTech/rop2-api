@@ -93,9 +93,6 @@ func setIntents(ctx *gin.Context) {
 		return
 	}
 
-	if err := model.SetIntents(arg.FormId, arg.IntentIds, arg.Step); err != nil {
-		ctx.AbortWithStatusJSON(utils.Message("设置失败", 500, 11))
-		return
-	}
+	model.SetIntents(arg.FormId, arg.IntentIds, arg.Step)
 	ctx.PureJSON(utils.Success())
 }

@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"regexp"
 	"rop2-api/model"
 	"rop2-api/utils"
 	"strings"
@@ -262,25 +265,6 @@ func adminLogin(ctx *gin.Context) {
 	ctx.PureJSON(utils.Success())
 }
 
-func applicantLogin(ctx *gin.Context) {
-	//TODO: 测试中，无检验直接登录
-	type Arg struct {
-		ZjuId *string `json:"zjuId"`
-	}
-	arg := &Arg{}
-	if ctx.ShouldBindJSON(arg) != nil || arg.ZjuId == nil || len(*arg.ZjuId) <= 0 {
-		ctx.AbortWithStatusJSON(utils.MessageBindFail())
-		return
-	}
-	now := time.Now()
-	ctx.Header("rop-refresh-token", newToken(ApplicantIdentity{
-		Iat:   now,
-		Exp:   now.Add(utils.AdminTokenDuration),
-		ZjuId: *arg.ZjuId,
-	}))
-	ctx.PureJSON(utils.Success())
-}
-
 func logout(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(userIdentity)
 	addVoidInfo(id.getId(), voidOne{iat: id.getIat()})
@@ -308,6 +292,108 @@ func addVoidInfo(zjuId string, info voidInfo) {
 	}
 }
 
+func loginByToken(ctx *gin.Context) {
+	type Arg struct {
+		Token    string `form:"SESSION_TOKEN" binding:"required"`
+		Continue string `form:"continue" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+	token := arg.Token
+	continueUrl := arg.Continue
+	//允许字符：字母、数字、下划线、短横线(减号)
+	if matched, _ := regexp.MatchString((`^[\w-]+$`), token); !matched {
+		ctx.AbortWithStatusJSON(utils.Message("token格式错误", 400, 1))
+		return
+	}
+	if !utils.LoginCallbackRegex.MatchString(continueUrl) {
+		ctx.AbortWithStatusJSON(utils.Message("回调地址无效", 400, 2))
+		return
+	}
+
+	client := &http.Client{}
+	//这个地址就硬编码在这里了。passport更新了的话 结果解析也要改
+	req, _ := http.NewRequest("GET", "https://www.qsc.zju.edu.cn/passport/v4/profile", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "SESSION_TOKEN",
+		Value: token,
+	})
+	resp, err := client.Do(req)
+	if err != nil {
+		ctx.AbortWithStatusJSON(utils.MessageInternalError())
+		return
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Err  string `json:"err"`
+		Code int    `json:"code"`
+		Data *struct {
+			Logined bool `json:"logined"`
+			//注：以下json字段为大写(AS IS)
+			User *struct {
+				Name  string `json:"Name"`
+				ZjuId string `json:"ZjuId"`
+			} `json:"User"`
+		} `json:"data"`
+	}
+	json.NewDecoder(resp.Body).Decode(&result)
+	if result.Err != "" || result.Code != 0 || !result.Data.Logined {
+		ctx.AbortWithStatusJSON(utils.Message("token无效", 401, 51))
+		return
+	}
+	zjuId := result.Data.User.ZjuId
+	name := result.Data.User.Name
+	if len(zjuId) <= 0 || len(name) <= 0 {
+		ctx.AbortWithStatusJSON(utils.Message("无法获取个人信息", 401, 52))
+		return
+	}
+	model.EnsurePerson(zjuId, name)
+
+	//TODO: DEBUG ONLY
+	//添加测试组织管理员权限
+	if model.TestOrgId > 0 {
+		model.SetAdmin(model.TestOrgId, zjuId, zjuId, model.Maintainer)
+	}
+
+	admin := model.GetAdmin(zjuId, nil)
+	now := time.Now()
+	var ropToken string
+	if len(admin) <= 0 {
+		//无管理权限，候选人登录
+		ropToken = newToken(ApplicantIdentity{
+			Iat:   now,
+			Exp:   now.Add(utils.ApplicantTokenDuration),
+			ZjuId: zjuId,
+		})
+	} else {
+		// if len(admin) > 1 {
+		// 	//多个组织，返回300
+		// 	orgProfiles := model.GetAvailableOrgs(zjuId)
+		// 	ctx.AbortWithStatusJSON(300, orgProfiles)
+		// 	return
+		// }
+		//TODO: 支持多组织登录
+		exactAdmin := admin[0]
+		ropToken = newToken(AdminIdentity{
+			Iat:      now,
+			Exp:      now.Add(utils.AdminTokenDuration),
+			ZjuId:    exactAdmin.ZjuId,
+			At:       exactAdmin.At,
+			Nickname: exactAdmin.Nickname,
+			Level:    exactAdmin.Level,
+		})
+	}
+	contUrl, _ := url.Parse(continueUrl)
+	newQuery := contUrl.Query()
+	newQuery.Set("ropToken", ropToken)
+	contUrl.RawQuery = newQuery.Encode()
+	ctx.Redirect(302, contUrl.String())
+}
+
 func authInit(routerGroup *gin.RouterGroup) {
 	//定期清除不再需要的voidInfo
 	voidMapCleanupTicker := time.NewTicker(30 * time.Second)
@@ -331,8 +417,7 @@ func authInit(routerGroup *gin.RouterGroup) {
 		}
 	}()
 
-	routerGroup.POST("/adminLogin", adminLogin)
-	routerGroup.POST("/applicantLogin", applicantLogin)
+	routerGroup.GET("/loginByToken", loginByToken)
 	routerGroup.GET("/logout", RequireLoginWithRefresh(false), logout)
 	routerGroup.GET("/logoutAll", RequireLoginWithRefresh(false), logoutAll)
 }
