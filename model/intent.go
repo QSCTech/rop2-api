@@ -104,6 +104,6 @@ func SetIntents(formId uint32, intentIds []uint32, step StepType) error {
 
 func QueryIntentsOfPerson(formId uint32, zjuId string) []Intent {
 	intents := make([]Intent, 0)
-	db.Where("form = ? AND zju_id = ?", formId, zjuId).Order("order ASC").Find(&intents)
+	db.Where("form = ? AND zju_id = ?", formId, zjuId).Order("`order` ASC").Find(&intents)
 	return intents
 }
