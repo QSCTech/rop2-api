@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -17,7 +18,7 @@ var (
 	AdminTokenDuration     time.Duration = time.Hour * 24 * 2 //管理员不操作多久后token失效
 	ApplicantTokenDuration time.Duration = time.Hour * 24 * 7 //候选人不操作多久后token失效
 
-	KeyValidSince time.Time = time.Now()
+	TokenValidSince time.Time = time.Now()
 
 	IdentityKey []byte //加密凭据的私钥
 
@@ -31,6 +32,15 @@ func readEnv(envKey, defaultValue string) string {
 	return defaultValue
 }
 
+func argContains(str string) bool {
+	for _, v := range os.Args {
+		if strings.EqualFold(v, str) {
+			return true
+		}
+	}
+	return false
+}
+
 // 读取配置
 func Init() {
 	BindAddr = readEnv("Addr", "127.0.0.1:8080")
@@ -38,8 +48,11 @@ func Init() {
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true")
 	LoginCallbackRegex = *regexp.MustCompile(readEnv("LoginCallbackRegex", "^http://localhost:5173(/.*)?$"))
 
-	if readEnv("ResetDb", "false") == "true" || (len(os.Args) > 1 && os.Args[1] == "reset") {
+	if readEnv("ResetDb", "false") == "true" || argContains("reset") {
 		DoResetDb = true
+	}
+	if argContains("saveToken") {
+		TokenValidSince = time.Now().Add(-time.Hour * 24 * 365)
 	}
 
 	//WARN: 生产环境请勿使用默认IDENTITY_KEY

@@ -34,9 +34,10 @@ func GetParticipants(formId uint32) *[]Person {
 	return &result
 }
 
-// 创建自然人信息，如果已存在则更新
+// 创建自然人信息，如果已存在则不操作
 func EnsurePerson(zjuId string, name string) {
 	var count int64
+	//不用Save，Save会更新所有字段，如果不查询就可能覆盖掉phone
 	db.Model(&Person{}).Where("zju_id = ?", zjuId).Count(&count)
 	if count == 0 {
 		db.Create(&Person{ZjuId: zjuId, Name: name, Phone: nil})

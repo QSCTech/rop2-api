@@ -140,7 +140,7 @@ func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T) bool {
 		ctx.AbortWithStatusJSON(code401("token已过期", 11))
 		return false
 	}
-	if (*resultPointer).getIat().Before(utils.KeyValidSince) {
+	if (*resultPointer).getIat().Before(utils.TokenValidSince) {
 		ctx.AbortWithStatusJSON(code401("token签发过早", 12))
 		return false
 	}
