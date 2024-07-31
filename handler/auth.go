@@ -360,7 +360,7 @@ func loginByToken(ctx *gin.Context) {
 	//TODO: DEBUG ONLY
 	//添加测试组织管理员权限
 	if model.TestOrgId > 0 {
-		model.SetAdmin(model.TestOrgId, zjuId, zjuId, model.Maintainer)
+		model.SetAdmin(model.TestOrgId, zjuId, "", model.Maintainer)
 	}
 
 	admin := model.GetAdmin(zjuId, nil)

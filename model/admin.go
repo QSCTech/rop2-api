@@ -2,6 +2,8 @@ package model
 
 import (
 	"time"
+
+	"gorm.io/gorm/clause"
 )
 
 type Admin struct {
@@ -95,6 +97,8 @@ func GetAdminsInOrg(orgId uint32, offset, limit int, filter string) AdminList {
 	return list
 }
 
+// 设置管理员，若level为Null则删除
+// 如果nickname为空：不更新nickname，如果原不存在则使用zjuId作为nickname
 func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
 	if level <= Null {
 		db.Delete(&Admin{}, "at = ? and zju_id = ?", at, zjuId)
@@ -102,5 +106,13 @@ func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
 	}
 
 	var admin = &Admin{At: at, ZjuId: zjuId, Nickname: nickname, Level: level}
-	db.Save(admin) //用Select+Save会失去新建行为
+	ass := map[string]interface{}{
+		"level": level,
+	}
+	if nickname == "" {
+		admin.Nickname = zjuId
+	} else {
+		ass["nickname"] = nickname
+	}
+	db.Debug().Clauses(clause.OnConflict{DoUpdates: clause.Assignments(ass)}).Create(admin)
 }
