@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"rop2-api/model"
 	"rop2-api/utils"
 	"time"
@@ -17,8 +18,18 @@ func applicantInit(routerGroup *gin.RouterGroup) {
 	applicantGroup.GET("/profile", applicantGetProfile)
 
 	applicantGroup.GET("/status", applicantGetStatus)
-	applicantGroup.GET("/interview", applicantGetInterviewList)
+	applicantGroup.GET("/interview/list", applicantGetInterviewList)
 	applicantGroup.POST("/interview/schedule", applicantScheduleInterview)
+}
+
+func isFormOpen(form *model.Form) string {
+	now := time.Now()
+	if form.StartAt != nil && form.StartAt.After(now) {
+		return "表单未开放"
+	} else if form.EndAt != nil && form.EndAt.Before(now) {
+		return "表单已结束"
+	}
+	return ""
 }
 
 // 候选人获取组织部门列表（选择志愿时使用）
@@ -49,14 +60,12 @@ func applicantGetFormDetail(ctx *gin.Context) {
 	formId := arg.Id
 	form := model.ApplicantGetFormDetail(formId)
 	if form != nil {
-		now := time.Now()
-		if form.StartAt != nil && form.StartAt.After(now) {
+		openError := isFormOpen(form)
+		if openError != "" {
 			form.Desc = ""
-			//正常的children应为数组
-			form.Children = `{"message":"表单未开放"}`
-		} else if form.EndAt != nil && form.EndAt.Before(now) {
-			form.Desc = ""
-			form.Children = `{"message":"表单已结束"}`
+			newChildrenBytes, _ := json.Marshal(map[string]string{"message": openError})
+			form.Children = utils.RawString(newChildrenBytes)
+			//children改成错误信息，无法获取题目，但是表单标题等还是可以获取的
 		}
 		ctx.PureJSON(200, form)
 	} else {
@@ -85,12 +94,9 @@ func saveForm(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
-	now := time.Now()
-	if form.StartAt != nil && form.StartAt.After(now) {
-		ctx.AbortWithStatusJSON(utils.Message("表单未开放", 400, 21))
-		return
-	} else if form.EndAt != nil && form.EndAt.Before(now) {
-		ctx.AbortWithStatusJSON(utils.Message("表单已结束", 400, 22))
+	openError := isFormOpen(form)
+	if openError != "" {
+		ctx.AbortWithStatusJSON(utils.Message(openError, 400, 10))
 		return
 	}
 	orgId := form.Owner
@@ -151,6 +157,8 @@ func applicantGetStatus(ctx *gin.Context) {
 	ctx.PureJSON(200, model.QueryIntentsOfPerson(arg.FormId, zjuId))
 }
 
+// 候选人提供formId，departId，获取可用的面试列表（返回数组，length可能为0）
+// 如果已经安排了面试，返回已安排的面试（直接返回单个对象json）
 func applicantGetInterviewList(ctx *gin.Context) {
 	type Arg struct {
 		FormId   uint32 `form:"formId" binding:"required"`
@@ -162,15 +170,21 @@ func applicantGetInterviewList(ctx *gin.Context) {
 		return
 	}
 	zjuId := ctx.MustGet("identity").(userIdentity).getId()
-
 	formId := arg.FormId
+	departId := arg.DepartId
 
 	intents := model.QueryIntentsOfPerson(formId, zjuId)
 	for _, v := range intents {
-		if v.Depart == arg.DepartId {
+		if v.Depart == departId {
 			step := v.Step
-			ctx.PureJSON(200, model.GetInterviews(formId, []uint32{arg.DepartId}, step))
-			return
+			scheduledIv := model.GetInterviewByIntent(formId, zjuId, departId, step)
+			if scheduledIv != nil {
+				ctx.PureJSON(200, scheduledIv)
+				return
+			} else {
+				ctx.PureJSON(200, model.GetInterviews(formId, []uint32{departId}, step))
+				return
+			}
 		}
 	}
 	ctx.PureJSON(utils.MessageNotFound())
@@ -182,7 +196,7 @@ func applicantScheduleInterview(ctx *gin.Context) {
 		InterviewId uint32 `form:"interviewId" binding:"required"`
 	}
 	arg := &Arg{}
-	if ctx.ShouldBindQuery(arg) != nil {
+	if ctx.ShouldBindJSON(arg) != nil {
 		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
@@ -196,7 +210,7 @@ func applicantScheduleInterview(ctx *gin.Context) {
 		return
 	}
 
-	if model.GetScheduleByIntent(formId, zjuId, interviewInst.Depart, interviewInst.Step) != nil { //已经安排了面试
+	if model.GetInterviewByIntent(formId, zjuId, interviewInst.Depart, interviewInst.Step) != nil { //已经安排了面试
 		ctx.AbortWithStatusJSON(utils.Message("已安排面试", 400, 31))
 		return
 	}

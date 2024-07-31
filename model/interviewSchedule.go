@@ -30,12 +30,15 @@ func AddScheduledId(interviewId uint32, zjuId PersonId) {
 }
 
 //查看对于指定志愿是否安排了面试
-func GetScheduleByIntent(formId uint32, zjuId PersonId, depart uint32, step StepType) *Intent {
-	var intent Intent
-	if db.Where("form = ? AND zju_id = ? AND depart = ? AND step = ?", formId, zjuId, depart, step).First(&intent).Error != nil ||
-		//防止不返回RecordNotFound错误
-		intent.Form != formId {
+func GetInterviewByIntent(formId uint32, zjuId PersonId, depart uint32, step StepType) *Interview {
+	var iv Interview
+	result := db.
+		Model(&Interview{}).
+		Where("interviews.form = ? AND interviews.depart = ? AND interviews.step = ?", formId, depart, step).
+		Joins("JOIN interview_schedules ON interviews.id = interview_schedules.interview AND interview_schedules.zju_id = ?", zjuId).
+		First(&iv)
+	if result.Error != nil || iv.Id <= 0 { //没有找到
 		return nil
 	}
-	return &intent
+	return &iv
 }

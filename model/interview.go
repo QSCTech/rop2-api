@@ -60,10 +60,7 @@ type InterviewInfo struct {
 func GetInterviews(formId uint32, departs []uint32, step StepType) []InterviewInfo {
 	var interviews []InterviewInfo = make([]InterviewInfo, 0)
 	db.
-		Select(
-			"interviews.id", "interviews.depart", "interviews.step", "interviews.capacity", "interviews.status",
-			"interviews.location", "interviews.start_at", "interviews.end_at",
-					"COUNT(interview_schedules.zju_id) AS UsedCapacity").
+		Select("interviews.*", "COUNT(interview_schedules.zju_id) AS UsedCapacity").
 		Table("interviews"). //from子句
 		Joins("LEFT JOIN interview_schedules ON (interviews.id = interview_schedules.interview)").
 		Where("interviews.form = ? AND interviews.depart IN ? AND interviews.step = ?", formId, departs, step).
