@@ -20,3 +20,11 @@ rop2-web的配套api。
 - map\[x\]y是无序的
 - 导入包不能有循环依赖，如utils不能再导入model handler等
 - gorm的bug|feature比你想象的要多。请谨慎使用`Save`。
+
+### 部署方式
+确保cwd下恰包含docker-compose.yml
+
+```sh
+docker-compose-18 stop
+docker-compose-18 up --build -d
+```

@@ -29,12 +29,13 @@ const (
 	//为简化，我们减少了权限级别数，估计可查看/可管理两级足以满足大部分需求
 )
 
-func GetAdmin(zjuId string, at *uint32) []*Admin {
+// 查询指定zjuId的管理员信息，若at为0则查询所有
+func GetAdmin(zjuId string, at uint32) []*Admin {
 	var pobj = make([]*Admin, 0)
-	if at == nil {
+	if at <= 0 {
 		db.Find(&pobj, "zju_id = ?", zjuId)
 	} else {
-		db.Find(&pobj, "zju_id = ? and at = ?", zjuId, *at)
+		db.Find(&pobj, "zju_id = ? and at = ?", zjuId, at)
 	}
 	return pobj
 }
@@ -106,13 +107,13 @@ func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
 	}
 
 	var admin = &Admin{At: at, ZjuId: zjuId, Nickname: nickname, Level: level}
-	ass := map[string]interface{}{
+	updateAssignments := map[string]interface{}{
 		"level": level,
 	}
 	if nickname == "" {
-		admin.Nickname = zjuId
+		admin.Nickname = zjuId //默认昵称为学号(不存在管理员，创建时使用)
 	} else {
-		ass["nickname"] = nickname
+		updateAssignments["nickname"] = nickname //nickname参数不为空，更新昵称
 	}
-	db.Debug().Clauses(clause.OnConflict{DoUpdates: clause.Assignments(ass)}).Create(admin)
+	db.Clauses(clause.OnConflict{DoUpdates: clause.Assignments(updateAssignments)}).Create(admin)
 }

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"rop2-api/model"
 	"rop2-api/utils"
@@ -233,42 +232,6 @@ func newToken[T any](jsonInfo T) string {
 	return fmt.Sprintf("%s %s", idenB64, signB64)
 }
 
-func adminLogin(ctx *gin.Context) {
-	//TODO: 测试中，无检验直接登录
-	type Arg struct {
-		ZjuId *string `json:"zjuId"`
-		At    *uint32 `json:"at"` //可选，如果有多个组织则返回300
-	}
-	arg := &Arg{}
-	if ctx.ShouldBindJSON(arg) != nil || arg.ZjuId == nil {
-		ctx.AbortWithStatusJSON(utils.MessageBindFail())
-		return
-	}
-
-	admin := model.GetAdmin(*arg.ZjuId, arg.At)
-	if len(admin) <= 0 {
-		ctx.AbortWithStatusJSON(utils.MessageNotFound())
-		return
-	}
-	if len(admin) > 1 {
-		//多个组织，返回300
-		orgProfiles := model.GetAvailableOrgs(*arg.ZjuId)
-		ctx.AbortWithStatusJSON(300, orgProfiles)
-		return
-	}
-	exactAdmin := admin[0]
-	now := time.Now()
-	ctx.Header("rop-refresh-token", newToken(AdminIdentity{
-		Iat:      now,
-		Exp:      now.Add(utils.AdminTokenDuration),
-		ZjuId:    exactAdmin.ZjuId,
-		At:       exactAdmin.At,
-		Nickname: exactAdmin.Nickname,
-		Level:    exactAdmin.Level,
-	}))
-	ctx.PureJSON(utils.Success())
-}
-
 func logout(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(userIdentity)
 	addVoidInfo(id.getId(), voidOne{iat: id.getIat()})
@@ -300,6 +263,7 @@ func loginByToken(ctx *gin.Context) {
 	type Arg struct {
 		Token    string `form:"SESSION_TOKEN" binding:"required"`
 		Continue string `form:"continue" binding:"required"`
+		OrgId    uint32 `form:"orgId"`
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindQuery(arg) != nil {
@@ -308,6 +272,7 @@ func loginByToken(ctx *gin.Context) {
 	}
 	token := arg.Token
 	continueUrl := arg.Continue
+	requestedOrgId := arg.OrgId
 	//允许字符：字母、数字、下划线、短横线(减号)
 	if matched, _ := regexp.MatchString((`^[\w-]+$`), token); !matched {
 		ctx.AbortWithStatusJSON(utils.Message("token格式错误", 400, 1))
@@ -337,7 +302,7 @@ func loginByToken(ctx *gin.Context) {
 		Code int    `json:"code"`
 		Data *struct {
 			Logined bool `json:"logined"`
-			//注：以下json字段为大写(AS IS)
+			//注：以下json键名大写(AS IS)
 			User *struct {
 				Name  string `json:"Name"`
 				ZjuId string `json:"ZjuId"`
@@ -357,13 +322,13 @@ func loginByToken(ctx *gin.Context) {
 	}
 	model.EnsurePerson(zjuId, name)
 
-	//TODO: DEBUG ONLY
-	//添加测试组织管理员权限
-	if model.TestOrgId > 0 {
-		model.SetAdmin(model.TestOrgId, zjuId, "", model.Maintainer)
-	}
+	// //TODO: DEBUG ONLY
+	// //添加测试组织管理员权限
+	// if model.TestOrgId > 0 {
+	// 	model.SetAdmin(model.TestOrgId, zjuId, "", model.Maintainer)
+	// }
 
-	admin := model.GetAdmin(zjuId, nil)
+	admin := model.GetAdmin(zjuId, requestedOrgId)
 	now := time.Now()
 	var ropToken string
 	if len(admin) <= 0 {
@@ -374,13 +339,16 @@ func loginByToken(ctx *gin.Context) {
 			ZjuId: zjuId,
 		})
 	} else {
-		// if len(admin) > 1 {
-		// 	//多个组织，返回300
-		// 	orgProfiles := model.GetAvailableOrgs(zjuId)
-		// 	ctx.AbortWithStatusJSON(300, orgProfiles)
-		// 	return
-		// }
-		//TODO: 支持多组织登录
+		if len(admin) > 1 {
+			orgProfiles := model.GetAvailableOrgs(zjuId)
+			ctx.Redirect(302, utils.AddQuery(utils.MutipleChoicesRedirect,
+				map[string]string{
+					"choices":       utils.Stringify(orgProfiles),
+					"SESSION_TOKEN": token,
+					"continue":      continueUrl, //登录完成后跳转的地址，没有加token等参数
+				}))
+			return
+		}
 		exactAdmin := admin[0]
 		ropToken = newToken(AdminIdentity{
 			Iat:      now,
@@ -391,11 +359,7 @@ func loginByToken(ctx *gin.Context) {
 			Level:    exactAdmin.Level,
 		})
 	}
-	contUrl, _ := url.Parse(continueUrl)
-	newQuery := contUrl.Query()
-	newQuery.Set("ropToken", ropToken)
-	contUrl.RawQuery = newQuery.Encode()
-	ctx.Redirect(302, contUrl.String())
+	ctx.Redirect(302, utils.AddQuery(continueUrl, map[string]string{"ropToken": ropToken}))
 }
 
 func authInit(routerGroup *gin.RouterGroup) {

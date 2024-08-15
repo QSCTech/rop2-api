@@ -4,6 +4,8 @@
 # 参考：https://github.com/docker-library/golang/issues/467#issuecomment-1601845758
 FROM golang:1.21-bullseye AS build
 
+ENV LANG=C.UTF-8
+
 WORKDIR /app
 
 RUN go env -w GO111MODULE=on

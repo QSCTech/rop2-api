@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	BindAddr           string
-	DSN                string
-	LoginCallbackRegex regexp.Regexp
+	BindAddr               string
+	DSN                    string
+	LoginCallbackRegex     regexp.Regexp
+	MutipleChoicesRedirect string
 
 	//自动刷新token距token签发需经过的时间
 	TokenRefreshAfter      time.Duration = 300 * time.Second
@@ -47,6 +48,7 @@ func Init() {
 	fmt.Printf("BindAddr: %s\r\n", BindAddr)
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true")
 	LoginCallbackRegex = *regexp.MustCompile(readEnv("LoginCallbackRegex", "^http://localhost:5173(/.*)?$"))
+	MutipleChoicesRedirect = readEnv("MutipleChoicesRedirect", "http://localhost:5173/login/choice")
 
 	if readEnv("ResetDb", "false") == "true" || argContains("reset") {
 		DoResetDb = true
