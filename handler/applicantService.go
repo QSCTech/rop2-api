@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"regexp"
 	"rop2-api/model"
 	"rop2-api/utils"
 	"time"
@@ -75,7 +76,7 @@ func applicantGetFormDetail(ctx *gin.Context) {
 }
 
 func saveForm(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(userIdentity).getId()
+	zjuId := ctx.MustGet("identity").(userIdentity).getId()
 	type Arg struct {
 		FormId        uint32   `json:"formId"`
 		Phone         string   `json:"phone"`
@@ -114,16 +115,12 @@ func saveForm(ctx *gin.Context) {
 	if len(intentDeparts) == 0 {
 		intentDeparts = []uint32{defaultDepartId}
 	}
-	if err := model.SaveResult(formId, id, arg.Content); err != nil {
-		ctx.AbortWithStatusJSON(utils.Message("问卷提交失败(答案保存失败)", 500, 11))
+	if matched, _ := regexp.MatchString((`^\d{11}$`), arg.Phone); !matched {
+		ctx.AbortWithStatusJSON(utils.Message("手机号格式无效", 500, 11))
 		return
 	}
-	if err := model.SaveIntents(formId, id, intentDeparts); err != nil {
-		ctx.AbortWithStatusJSON(utils.Message("问卷提交失败(志愿生成失败)", 500, 11))
-		return
-	}
-	if err := model.SaveProfile(id, arg.Phone); err != nil {
-		ctx.AbortWithStatusJSON(utils.Message("个人信息保存失败", 400, 12))
+	if err := model.SaveFullResult(formId, zjuId, arg.Phone, arg.Content, intentDeparts); err != nil {
+		ctx.AbortWithStatusJSON(utils.Message("问卷提交失败", 500, 11))
 		return
 	}
 	ctx.PureJSON(utils.Success())
@@ -139,6 +136,9 @@ func applicantGetProfile(ctx *gin.Context) {
 	type Profile struct {
 		ZjuId string `json:"zjuId"`
 		Phone string `json:"phone"`
+	}
+	if person.Phone == nil {
+		person.Phone = new(string) //第一次进入系统，没有设置过手机号
 	}
 	ctx.PureJSON(200, Profile{ZjuId: person.ZjuId, Phone: *person.Phone})
 }

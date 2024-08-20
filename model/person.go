@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"regexp"
 	"time"
 
 	"gorm.io/gorm"
@@ -42,13 +41,6 @@ func EnsurePerson(zjuId string, name string) {
 	if count == 0 {
 		db.Create(&Person{ZjuId: zjuId, Name: name, Phone: nil})
 	}
-}
-
-func SaveProfile(zjuId string, phone string) error {
-	if matched, _ := regexp.MatchString((`^\d{11}$`), phone); !matched {
-		return errors.New("手机号格式错误")
-	}
-	return db.Model(&Person{}).Where("zju_id = ?", zjuId).Update("Phone", phone).Error
 }
 
 func FindPerson(zjuId string) *Person {
