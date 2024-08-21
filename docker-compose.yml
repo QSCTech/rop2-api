@@ -12,6 +12,7 @@ services:
       # 注意这里$要转义
       - ROP2_LoginCallbackRegex=^https?://(www\.qsc\.zju\.edu\.cn|localhost:5173)(/.*)?$$
       - ROP2_MutipleChoicesRedirect=https://www.qsc.zju.edu.cn/rop/login/choice
+      # go-server的LANG/TZ环境变量移至Dockerfile
     depends_on:
       mysql:
         condition: service_healthy
@@ -22,6 +23,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - LANG=C.UTF-8
+      - TZ=Asia/Shanghai
     volumes:
       - rop2_db:/var/lib/mysql:rw
     healthcheck:

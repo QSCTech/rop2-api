@@ -6,7 +6,7 @@ type InterviewSchedule struct {
 	Id uint32 `json:"id" gorm:"primaryKey;autoIncrement"` //面试安排id
 
 	ZjuId     PersonId `json:"zjuId" gorm:"type:char(10);uniqueIndex:uni_zjuId_interview"` //学号
-	Interview uint32   `json:"interview" gorm:"not null;uniqueIndex:uni_zjuId_interview"`  //面试id
+	Interview uint32   `json:"interview" gorm:"not null;uniqueIndex:uni_zjuId_interview"`  //面试id，同样指定了此次面试安排归属组织、表单、部门、阶段
 
 	CreateAt time.Time `json:"createAt" gorm:"not null;autoCreateTime"`
 	UpdateAt time.Time `json:"updateAt" gorm:"not null;autoUpdateTime"`

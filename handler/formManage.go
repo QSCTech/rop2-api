@@ -17,6 +17,7 @@ func formInit(routerGroup *gin.RouterGroup) {
 	formGroup.POST("/edit", RequireLevel(model.Maintainer), editForm)
 	formGroup.POST("/create", RequireLevel(model.Maintainer), createForm)
 	formGroup.POST("/delete", RequireLevel(model.Maintainer), deleteForm)
+	formGroup.GET("/statistic", getFormStatistic)
 }
 
 // 获取表单列表，只有简略信息：id,name,start/endAt,create/updateAt
@@ -43,6 +44,7 @@ func getFormDetail(ctx *gin.Context) {
 	}
 
 	formId := arg.Id
+	//此处获取表单信息同样限制owner，防止越权查看
 	form := model.GetFormDetail(orgId, formId)
 	if form != nil {
 		ctx.PureJSON(200, form)
@@ -122,4 +124,26 @@ func deleteForm(ctx *gin.Context) {
 	} else {
 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 	}
+}
+
+func getFormStatistic(ctx *gin.Context) {
+	iden := ctx.MustGet("identity").(AdminIdentity)
+	orgId := iden.At
+
+	type Arg struct {
+		Id uint32 `form:"id"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	formId := arg.Id
+	if !model.CheckFormOwner(orgId, formId) {
+		ctx.AbortWithStatusJSON(utils.MessageForbidden())
+		return
+	}
+
+	ctx.PureJSON(200, model.GetFormStatistic(formId))
 }

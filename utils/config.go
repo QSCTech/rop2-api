@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -44,6 +46,22 @@ func argContains(str string) bool {
 
 // 读取配置
 func Init() {
+	envFiles := []string{".env", "local.env"}
+	//加载环境变量，后面的覆盖前者
+	for _, envFile := range envFiles {
+		err := godotenv.Overload(envFile)
+		if err != nil {
+			if os.IsNotExist(err) {
+				println("Env file not found:", envFile)
+			} else {
+				println("Error loading env file:", envFile)
+				os.Exit(1)
+			}
+		} else {
+			println("Env file loaded:", envFile)
+		}
+	}
+
 	BindAddr = readEnv("Addr", "127.0.0.1:8080")
 	fmt.Printf("BindAddr: %s\r\n", BindAddr)
 	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true")

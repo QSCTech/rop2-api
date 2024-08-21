@@ -4,6 +4,8 @@ import (
 	"errors"
 	"rop2-api/utils"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Form struct {
@@ -130,4 +132,102 @@ func CreateForm(owner uint32, name string) (uint32, error) {
 func DeleteForm(owner uint32, formId uint32) bool {
 	result := db.Delete(&Form{}, "id = ? AND owner = ?", formId, owner)
 	return result.RowsAffected > 0
+}
+
+type StepStatistic struct {
+	Id             StepType `json:"id"`
+	PeopleCount    uint32   `json:"peopleCount"`
+	IntentsCount   uint32   `json:"intentsCount"`
+	InterviewDone  uint32   `json:"interviewDone"`
+	InterviewCount uint32   `json:"interviewCount"`
+}
+
+func GetFormStatistic(formId uint32) []StepStatistic {
+	type DbPeopleCount struct {
+		Step         StepType
+		PeopleCount  uint32
+		IntentsCount uint32
+	}
+	var peopleCountResult []DbPeopleCount
+	type DbInterviewCount struct {
+		Step           StepType
+		InterviewDone  uint32
+		InterviewCount uint32
+	}
+	var interviewCountResult []DbInterviewCount
+	db.Transaction(func(tx *gorm.DB) error {
+		tx.Select("step, COUNT(DISTINCT zju_id) as PeopleCount, COUNT(*) as IntentsCount").
+			Table("intents").
+			Where("form = ?", formId).
+			Group("step").
+			Order("step ASC").
+			Scan(&peopleCountResult) //查询人数&志愿数
+		tx.Select("step, COUNT(CASE WHEN now() <= end_at THEN 1 END) as InterviewDone, COUNT(*) as InterviewCount").
+			Table("interviews").
+			Where("form = ?", formId).
+			Group("step").
+			Order("step ASC").
+			Scan(&interviewCountResult) //查询面试数&已完成面试数
+		return nil //暂时不管SELECT的错误
+	})
+	result := make([]StepStatistic, 0, len(peopleCountResult)+len(interviewCountResult))
+	//用类似"双指针"的逻辑合并两个查询结果。两个结果都是按step升序
+	i, j, peopleCountLen, interviewCountLen := 0, 0, len(peopleCountResult), len(interviewCountResult)
+	for {
+		if i == peopleCountLen {
+			if j == interviewCountLen {
+				break
+			} else {
+				//只剩下interviewCountResult
+				result = append(result, StepStatistic{
+					Id:             interviewCountResult[j].Step,
+					PeopleCount:    0,
+					IntentsCount:   0,
+					InterviewDone:  interviewCountResult[j].InterviewDone,
+					InterviewCount: interviewCountResult[j].InterviewCount,
+				})
+				j++
+			}
+		} else if j == interviewCountLen {
+			//只剩下peopleCountResult
+			result = append(result, StepStatistic{
+				Id:             peopleCountResult[i].Step,
+				PeopleCount:    peopleCountResult[i].PeopleCount,
+				IntentsCount:   peopleCountResult[i].IntentsCount,
+				InterviewDone:  0,
+				InterviewCount: 0,
+			})
+			i++
+		} else if peopleCountResult[i].Step == interviewCountResult[j].Step { //两个数组都有元素，可以取一个出来比较step
+			result = append(result, StepStatistic{
+				Id:             peopleCountResult[i].Step,
+				PeopleCount:    peopleCountResult[i].PeopleCount,
+				IntentsCount:   peopleCountResult[i].IntentsCount,
+				InterviewDone:  interviewCountResult[j].InterviewDone,
+				InterviewCount: interviewCountResult[j].InterviewCount,
+			})
+			i++
+			j++
+		} else if peopleCountResult[i].Step < interviewCountResult[j].Step {
+			result = append(result, StepStatistic{
+				Id:             peopleCountResult[i].Step,
+				PeopleCount:    peopleCountResult[i].PeopleCount,
+				IntentsCount:   peopleCountResult[i].IntentsCount,
+				InterviewDone:  0,
+				InterviewCount: 0,
+			})
+			i++
+		} else {
+			result = append(result, StepStatistic{
+				Id:             interviewCountResult[j].Step,
+				PeopleCount:    0,
+				IntentsCount:   0,
+				InterviewDone:  interviewCountResult[j].InterviewDone,
+				InterviewCount: interviewCountResult[j].InterviewCount,
+			})
+			j++
+		}
+	}
+
+	return result //因为结构简单，直接返回数组而非指针
 }

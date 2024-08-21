@@ -80,9 +80,6 @@ func ResetDb() {
 
 	db.Exec(fkBuilder("interview_schedules", "zju_id", "people", "zju_id", cascade))
 	db.Exec(fkBuilder("interview_schedules", "interview", "interviews", "id", cascade))
-	db.Exec(fkBuilder("interview_schedules", "form", "forms", "id", cascade))
-	db.Exec(fkBuilder("interview_schedules", "depart", "departs", "id", cascade))
-	db.Exec(fkBuilder("interview_schedules", "step", "stages", "id", cascade))
 
 	//数据库初始化完成，但不添加任何测试数据
 

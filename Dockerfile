@@ -5,6 +5,7 @@
 FROM golang:1.21-bullseye AS build
 
 ENV LANG=C.UTF-8
+ENV TZ=Asia/Shanghai
 
 WORKDIR /app
 
@@ -14,7 +15,9 @@ RUN go env -w GOPROXY=https://goproxy.cn,direct
 COPY go.mod go.sum ./
 # RUN go mod download
 
+# .env & local.env is also copied here
 COPY . ./
+
 # generate a executable file
 RUN go build -o /app/exec
 
