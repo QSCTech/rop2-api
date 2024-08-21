@@ -22,7 +22,11 @@ COPY . ./
 # generate a executable file
 RUN go build -o /app/exec
 
-FROM ubuntu:20.04 AS export
+FROM debian:bullseye AS export
+
+RUN apt-get update
+RUN apt-get install -y ca-certificates
+
 WORKDIR /app
 COPY ./*.env ./
 COPY --from=build /app/exec ./

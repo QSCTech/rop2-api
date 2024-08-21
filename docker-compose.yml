@@ -6,7 +6,7 @@ services:
     ports:
       - "2231:8080"
     environment:
-      # - GIN_MODE=release
+      - GIN_MODE=release
       - ROP2_Addr=0.0.0.0:8080
       - ROP2_DSN=root:root@tcp(mysql:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true
       # 注意这里$要转义

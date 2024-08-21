@@ -292,6 +292,7 @@ func loginByToken(ctx *gin.Context) {
 	})
 	resp, err := client.Do(req)
 	if err != nil {
+		println(err.Error())
 		ctx.AbortWithStatusJSON(utils.MessageInternalError())
 		return
 	}
