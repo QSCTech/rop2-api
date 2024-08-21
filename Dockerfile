@@ -12,14 +12,23 @@ WORKDIR /app
 RUN go env -w GO111MODULE=on
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 
+# Use build cache if go.mod and go.sum files are not changed
 COPY go.mod go.sum ./
-# RUN go mod download
+RUN go mod download
 
 # .env & local.env is also copied here
 COPY . ./
 
 # generate a executable file
 RUN go build -o /app/exec
+
+FROM ubuntu:20.04 AS export
+WORKDIR /app
+COPY ./*.env ./
+COPY --from=build /app/exec ./
+
+ENV LANG=C.UTF-8
+ENV TZ=Asia/Shanghai
 
 EXPOSE 8080
 
