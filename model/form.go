@@ -141,8 +141,12 @@ type StepStatistic struct {
 	InterviewDone  uint32   `json:"interviewDone"`
 	InterviewCount uint32   `json:"interviewCount"`
 }
+type FormStatistic struct {
+	Steps       []StepStatistic `json:"steps"`
+	PeopleCount uint32          `json:"peopleCount"`
+}
 
-func GetFormStatistic(formId uint32) []StepStatistic {
+func GetFormStatistic(formId uint32) FormStatistic {
 	type DbPeopleCount struct {
 		Step         StepType
 		PeopleCount  uint32
@@ -155,6 +159,7 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 		InterviewCount uint32
 	}
 	var interviewCountResult []DbInterviewCount
+	var peopleCount int64 //整个表单的总人数
 	db.Transaction(func(tx *gorm.DB) error {
 		tx.Select("step, COUNT(DISTINCT zju_id) as PeopleCount, COUNT(*) as IntentsCount").
 			Table("intents").
@@ -168,9 +173,11 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 			Group("step").
 			Order("step ASC").
 			Scan(&interviewCountResult) //查询面试数&已完成面试数
+		//用intents而非results去查总人数
+		tx.Table("intents").Where("form = ?", formId).Distinct("zju_id").Count(&peopleCount)
 		return nil //暂时不管SELECT的错误
 	})
-	result := make([]StepStatistic, 0, len(peopleCountResult)+len(interviewCountResult))
+	stepStatistics := make([]StepStatistic, 0, len(peopleCountResult)+len(interviewCountResult))
 	//用类似"双指针"的逻辑合并两个查询结果。两个结果都是按step升序
 	i, j, peopleCountLen, interviewCountLen := 0, 0, len(peopleCountResult), len(interviewCountResult)
 	for {
@@ -179,7 +186,7 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 				break
 			} else {
 				//只剩下interviewCountResult
-				result = append(result, StepStatistic{
+				stepStatistics = append(stepStatistics, StepStatistic{
 					Id:             interviewCountResult[j].Step,
 					PeopleCount:    0,
 					IntentsCount:   0,
@@ -190,7 +197,7 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 			}
 		} else if j == interviewCountLen {
 			//只剩下peopleCountResult
-			result = append(result, StepStatistic{
+			stepStatistics = append(stepStatistics, StepStatistic{
 				Id:             peopleCountResult[i].Step,
 				PeopleCount:    peopleCountResult[i].PeopleCount,
 				IntentsCount:   peopleCountResult[i].IntentsCount,
@@ -199,7 +206,7 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 			})
 			i++
 		} else if peopleCountResult[i].Step == interviewCountResult[j].Step { //两个数组都有元素，可以取一个出来比较step
-			result = append(result, StepStatistic{
+			stepStatistics = append(stepStatistics, StepStatistic{
 				Id:             peopleCountResult[i].Step,
 				PeopleCount:    peopleCountResult[i].PeopleCount,
 				IntentsCount:   peopleCountResult[i].IntentsCount,
@@ -209,7 +216,7 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 			i++
 			j++
 		} else if peopleCountResult[i].Step < interviewCountResult[j].Step {
-			result = append(result, StepStatistic{
+			stepStatistics = append(stepStatistics, StepStatistic{
 				Id:             peopleCountResult[i].Step,
 				PeopleCount:    peopleCountResult[i].PeopleCount,
 				IntentsCount:   peopleCountResult[i].IntentsCount,
@@ -218,7 +225,7 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 			})
 			i++
 		} else {
-			result = append(result, StepStatistic{
+			stepStatistics = append(stepStatistics, StepStatistic{
 				Id:             interviewCountResult[j].Step,
 				PeopleCount:    0,
 				IntentsCount:   0,
@@ -229,5 +236,8 @@ func GetFormStatistic(formId uint32) []StepStatistic {
 		}
 	}
 
-	return result //因为结构简单，直接返回数组而非指针
+	return FormStatistic{
+		Steps:       stepStatistics,
+		PeopleCount: uint32(peopleCount),
+	}
 }
