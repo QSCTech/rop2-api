@@ -1,16 +1,19 @@
-# name: rop2-api
+name: rop2-api
 
 services:
   go-server:
     build: .
+    restart: unless-stopped
     ports:
+      # 2231为宿主机实际暴露端口
       - "2231:8080"
     environment:
       - GIN_MODE=release
       - ROP2_Addr=0.0.0.0:8080
+      # 此处mysql是主机名(由docker-compose解析)
       - ROP2_DSN=root:root@tcp(mysql:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true
       # 注意这里$要转义
-      - ROP2_LoginCallbackRegex=^https?://(www\.qsc\.zju\.edu\.cn|localhost:5173)(/.*)?$$
+      - ROP2_LoginCallbackRegex=^https?://(www\.qsc\.zju\.edu\.cn|localhost)(:\d+)?(/|$$)
       - ROP2_MutipleChoicesRedirect=https://www.qsc.zju.edu.cn/rop/login/choice
       # go-server的LANG/TZ环境变量移至Dockerfile
     depends_on:
@@ -20,6 +23,7 @@ services:
   mysql:
     # mysql:8.4无法初始化
     image: "mysql:8"
+    restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - LANG=C.UTF-8
@@ -29,8 +33,8 @@ services:
     healthcheck:
       test: "mysql -u root -p'root' -e \"SELECT VERSION();CREATE DATABASE IF NOT EXISTS rop2;\""
       start_period: 15s
-      interval: 3s
-      timeout: 3s
+      interval: 1s
+      timeout: 1s
       retries: 10
 
 volumes:

@@ -22,9 +22,10 @@ rop2-web的配套api。
 - gorm的bug|feature比你想象的要多。请谨慎使用`Save`。
 
 ### 部署方式
-确保cwd下恰包含docker-compose.yml
+确保cwd下恰包含compose.yml。请使用Docker Compose v2.20+
 
 ```sh
-docker-compose-18 stop
-docker-compose-18 up --build -d
+docker-compose-2 build
+docker-compose-2 stop
+docker-compose-2 up --no-build -d
 ```
