@@ -1,8 +1,11 @@
 .vscode
 .git
-*.md
+.gitignore
 
+*.md
 Dockerfile
-docker-compose.yml
-compose.yml
+*.yml
+.dockerignore
+
+*.bat
 *.sh

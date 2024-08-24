@@ -12,7 +12,7 @@ WORKDIR /app
 RUN go env -w GO111MODULE=on
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 
-# Use build cache if go.mod and go.sum files are not changed
+# Use build cache if go.mod and go.sum are not changed
 COPY go.mod go.sum ./
 RUN go mod download
 

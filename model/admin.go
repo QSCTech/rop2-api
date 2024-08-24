@@ -8,7 +8,7 @@ import (
 
 type Admin struct {
 	//学号，用于唯一识别和登录(复合主键)。考虑到有0开头学号用字符串存
-	ZjuId string `json:"zjuId" gorm:"type:char(10);primaryKey"`
+	ZjuId PersonId `json:"zjuId" gorm:"type:char(10);primaryKey"`
 	//管理的组织id(复合主键)
 	At uint32 `json:"at" gorm:"primaryKey;autoIncrement:false;uniqueIndex:uni_nickname_at"`
 	//在该组织的昵称，在该组织内唯一
@@ -16,10 +16,14 @@ type Admin struct {
 	//权限级别
 	Level PermLevel `json:"level" gorm:"not null"`
 
+	//最后一次管理员登录时间(多个组织时不一定是该学号最后登录)
+	//此值在GET /org时更新，而非登录时
+	LastSeen *time.Time `json:"lastSeen" gorm:"default:null"`
+
 	CreateAt time.Time `json:"createAt" gorm:"not null;autoCreateTime"`
 }
 
-// 权限级别，管理员可在同组织下添加权限不高于自己的管理员
+// 权限级别
 type PermLevel int8
 
 const (
@@ -116,4 +120,9 @@ func SetAdmin(at uint32, zjuId string, nickname string, level PermLevel) {
 		updateAssignments["nickname"] = nickname //nickname参数不为空，更新昵称
 	}
 	db.Clauses(clause.OnConflict{DoUpdates: clause.Assignments(updateAssignments)}).Create(admin)
+}
+
+func UpdateLastSeen(zjuId PersonId, at uint32) {
+	now := time.Now()
+	db.Model(&Admin{}).Where("zju_id = ? AND at = ?", zjuId, at).Update("last_seen", &now)
 }

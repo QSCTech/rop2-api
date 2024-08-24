@@ -16,6 +16,7 @@ func orgInit(routerGroup *gin.RouterGroup) {
 }
 
 // 获取登录所在组织（含所有部门）的信息
+// 调用成功时更新管理员最后登录时间
 func getOrgInfo(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(AdminIdentity)
 	//只要能以组织的身份登录，就可查询，对具体权限级别无要求
@@ -24,6 +25,7 @@ func getOrgInfo(ctx *gin.Context) {
 	if org == nil {
 		ctx.PureJSON(204, gin.H{})
 	} else {
+		model.UpdateLastSeen(id.ZjuId, orgId)
 		departs := model.GetOrgDeparts(orgId)
 		ctx.PureJSON(200, gin.H{
 			"org":     org,
