@@ -16,10 +16,8 @@ RUN go env -w GOPROXY=https://goproxy.cn,direct
 COPY go.mod go.sum ./
 RUN go mod download
 
-# .env & local.env is also copied here
-COPY . ./
-
 # generate a executable file
+COPY . ./
 RUN go build -o /app/exec
 
 FROM debian:bullseye AS export

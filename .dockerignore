@@ -1,11 +1,10 @@
 .vscode
 .git
-.gitignore
+*ignore
 
 *.md
+
 Dockerfile
-*.yml
-.dockerignore
 
 *.bat
 *.sh
