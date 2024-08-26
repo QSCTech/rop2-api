@@ -198,7 +198,8 @@ func RequireLoginWithRefresh(allowRefresh bool) gin.HandlerFunc {
 		//已确认token有效
 		if allowRefresh {
 			newToken := iden.canRefresh(time.Now())
-			//不需要刷新token，对header设空字符串不会报错
+			//不需要刷新token
+			//对header设空字符串不会报错
 			ctx.Header("rop-refresh-token", newToken)
 		}
 		ctx.Set("identity", iden)
@@ -389,4 +390,7 @@ func authInit(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/loginByToken", loginByToken)
 	routerGroup.GET("/logout", RequireLoginWithRefresh(false), logout)
 	routerGroup.GET("/logoutAll", RequireLoginWithRefresh(false), logoutAll)
+	//允许POST退出登录，兼容sendBeacon(实际逻辑不变，且不检查body)
+	routerGroup.POST("/logout", RequireLoginWithRefresh(false), logout)
+	routerGroup.POST("/logoutAll", RequireLoginWithRefresh(false), logoutAll)
 }
