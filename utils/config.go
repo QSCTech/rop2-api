@@ -1,39 +1,51 @@
 package utils
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v3"
 )
+
+type Config struct {
+	Addr                   string `yaml:"Addr"`
+	DSN                    string `yaml:"DSN"`
+	MutipleChoicesRedirect string `yaml:"MutipleChoicesRedirect"`
+
+	LoginCallbackRegex string `yaml:"LoginCallbackRegex"`
+
+	// TokenDomain string `yaml:"TokenDomain"`
+	// TokenPath   string `yaml:"TokenPath"`
+	// TokenSecure bool   `yaml:"TokenSecure"`
+
+	//加密凭据的密钥
+	IdentityKey string `yaml:"IdentityKey"`
+	//自动刷新token距token签发需经过的时间
+	TokenRefreshAfter time.Duration `yaml:"TokenRefreshAfter"`
+	//token有效期
+	TokenDuration time.Duration `yaml:"TokenDuration"`
+
+	CORSAllowOrigins []string `yaml:"CORSAllowOrigins"`
+}
+
+var Cfg = Config{
+	Addr:                   "127.0.0.1:8080",
+	DSN:                    "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true",
+	MutipleChoicesRedirect: "http://localhost:5173/login/choice",
+	LoginCallbackRegex:     "^http://localhost:5173(/.*)?$",
+	TokenRefreshAfter:      time.Minute * 2,
+	TokenDuration:          time.Hour * 24 * 1,
+	CORSAllowOrigins:       []string{"http://localhost:5173"},
+}
 
 var (
-	BindAddr               string
-	DSN                    string
-	LoginCallbackRegex     regexp.Regexp
-	MutipleChoicesRedirect string
-
-	//自动刷新token距token签发需经过的时间
-	TokenRefreshAfter      time.Duration = 300 * time.Second
-	AdminTokenDuration     time.Duration = time.Hour * 24 * 2 //管理员不操作多久后token失效
-	ApplicantTokenDuration time.Duration = time.Hour * 24 * 7 //候选人不操作多久后token失效
-
-	TokenValidSince time.Time = time.Now()
-
-	IdentityKey []byte //加密凭据的私钥
-
-	DoResetDb bool = false
+	LoginCallbackRegex *regexp.Regexp
+	TokenValidSince    time.Time = time.Now()
+	IdentityKey        []byte
 )
-
-func readEnv(envKey, defaultValue string) string {
-	if v, ok := os.LookupEnv(fmt.Sprintf("ROP2_%s", envKey)); ok {
-		return v
-	}
-	return defaultValue
-}
 
 func argContains(str string) bool {
 	for _, v := range os.Args {
@@ -46,35 +58,27 @@ func argContains(str string) bool {
 
 // 读取配置
 func Init() {
-	envFiles := []string{".env", "local.env"}
-	//加载环境变量，后面的覆盖前者
-	for _, envFile := range envFiles {
-		err := godotenv.Overload(envFile)
-		if err != nil {
-			if os.IsNotExist(err) {
-				println("Env file not found:", envFile)
-			} else {
-				println("Error loading env file:", envFile)
-				os.Exit(1)
-			}
-		} else {
-			println("Env file loaded:", envFile)
-		}
+	f, err := os.Open("config.yml")
+	if err != nil {
+		log.Fatal(err.Error())
+		return
+	}
+	defer f.Close()
+
+	decoder := yaml.NewDecoder(f)
+	err = decoder.Decode(&Cfg)
+	if err != nil {
+		log.Fatal(err.Error())
+		return
 	}
 
-	BindAddr = readEnv("Addr", "127.0.0.1:8080")
-	fmt.Printf("BindAddr: %s\r\n", BindAddr)
-	DSN = readEnv("DSN", "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true")
-	LoginCallbackRegex = *regexp.MustCompile(readEnv("LoginCallbackRegex", "^http://localhost:5173(/.*)?$"))
-	MutipleChoicesRedirect = readEnv("MutipleChoicesRedirect", "http://localhost:5173/login/choice")
-
-	if readEnv("ResetDb", "false") == "true" || argContains("reset") {
-		DoResetDb = true
-	}
-	if argContains("saveToken") {
+	LoginCallbackRegex = regexp.MustCompile(Cfg.LoginCallbackRegex)
+	if argContains("saveToken") { //允许使用之前的token(需使用同一IdentityKey签名)
 		TokenValidSince = time.Now().Add(-time.Hour * 24 * 365)
 	}
-
-	//WARN: 生产环境请勿使用默认IDENTITY_KEY
-	IdentityKey = Sha256(RawBytes(readEnv("IDENTITY_KEY", DSN)), 16)
+	if Cfg.IdentityKey == "" {
+		log.Fatal("IdentityKey is empty")
+		return
+	}
+	IdentityKey = Sha256([]byte(Cfg.IdentityKey), 16)
 }

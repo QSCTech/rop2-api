@@ -28,7 +28,7 @@ RUN apt-get update
 RUN apt-get install -y ca-certificates
 
 WORKDIR /app
-COPY ./*.env ./
+COPY ./config.yml ./
 COPY --from=build /app/exec ./
 
 ENV LANG=C.UTF-8

@@ -9,13 +9,6 @@ services:
       - "2231:8080"
     environment:
       - GIN_MODE=release
-      - ROP2_Addr=0.0.0.0:8080
-      # 此处mysql是主机名(由docker-compose解析)
-      - ROP2_DSN=root:root@tcp(mysql:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true
-      # 注意这里$要转义
-      - ROP2_LoginCallbackRegex=^https?://(www\.qsc\.zju\.edu\.cn|localhost)(:\d+)?(/|$$)
-      - ROP2_MutipleChoicesRedirect=https://www.qsc.zju.edu.cn/rop/login/choice
-      # go-server的LANG/TZ环境变量移至Dockerfile
     depends_on:
       mysql:
         condition: service_healthy

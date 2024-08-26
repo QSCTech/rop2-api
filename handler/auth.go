@@ -14,9 +14,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const TOKEN_KEY = "rop-token"
+
+func getToken(ctx *gin.Context) string {
+	return ctx.GetHeader(TOKEN_KEY)
+}
+
+func setToken(ctx *gin.Context, token string) {
+	ctx.Header(TOKEN_KEY, token)
+	// ctx.SetCookie(TOKEN_KEY, token, int(utils.Cfg.TokenDuration.Seconds()), utils.Cfg.TokenPath, utils.Cfg.TokenDomain, false, false)
+}
+
 // 所有凭据(报名者、管理员)的抽象接口
 type userIdentity interface {
-	//检查是否可以刷新token，此方法不检查当前token有效期等
+	//检查是否可以刷新token，此方法不检查当前token有效期等(有效性在确认登录态时检查)
 	//
 	//返回值即为新的token，返回""表示不需要刷新
 	canRefresh(now time.Time) string
@@ -38,10 +49,10 @@ type AdminIdentity struct {
 }
 
 func (this AdminIdentity) canRefresh(now time.Time) string {
-	if now.After(this.getIat().Add(utils.TokenRefreshAfter)) {
+	if now.After(this.getIat().Add(utils.Cfg.TokenRefreshAfter)) {
 		copy := this //浅克隆this
 		copy.Iat = now
-		copy.Exp = copy.Iat.Add(utils.AdminTokenDuration)
+		copy.Exp = copy.Iat.Add(utils.Cfg.TokenDuration)
 		return newToken(copy)
 	}
 	return ""
@@ -57,10 +68,10 @@ type ApplicantIdentity struct {
 }
 
 func (this ApplicantIdentity) canRefresh(now time.Time) string {
-	if now.After(this.getIat().Add(utils.TokenRefreshAfter)) {
+	if now.After(this.getIat().Add(utils.Cfg.TokenRefreshAfter)) {
 		copy := this //浅克隆this
 		copy.Iat = now
-		copy.Exp = copy.Iat.Add(utils.ApplicantTokenDuration)
+		copy.Exp = copy.Iat.Add(utils.Cfg.TokenDuration)
 		return newToken(copy)
 	}
 	return ""
@@ -84,7 +95,7 @@ type voidOne struct {
 
 func (info voidOne) needKeep(now time.Time) bool {
 	const secGap = 5 * time.Second //保证此失效记录完全覆盖有效期的小间隙
-	return info.iat.Add(utils.AdminTokenDuration).Add(secGap).After(now)
+	return info.iat.Add(utils.Cfg.TokenDuration).Add(secGap).After(now)
 }
 func (info voidOne) needVoid(status userIdentity) bool {
 	return status.getIat().Sub(info.iat).Abs() <= 2*time.Second
@@ -97,13 +108,13 @@ type voidBefore struct {
 
 func (info voidBefore) needKeep(now time.Time) bool {
 	const secGap = 5 * time.Second //保证此失效记录完全覆盖有效期的小间隙
-	return info.before.Add(utils.AdminTokenDuration).Add(secGap).After(now)
+	return info.before.Add(utils.Cfg.TokenDuration).Add(secGap).After(now)
 }
 func (info voidBefore) needVoid(status userIdentity) bool {
 	return status.getIat().Compare(info.before) <= 0
 }
 
-// 从header读取token并转换，存储在resultPointer中，返回是否成功。
+// 读取token并转换，存储在resultPointer中，返回是否成功。
 //
 // golang默认json反序列化缺失字段不报错，必须另行是否是有效的AdminIdentity。
 func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T) bool {
@@ -111,7 +122,7 @@ func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T) bool {
 		return utils.Message(message, 401, subCode)
 	}
 	//token格式: base64encodedidentityjson base64sign
-	token := ctx.GetHeader("rop-token")
+	token := getToken(ctx)
 	parts := strings.Split(token, " ")
 	if len(parts) != 2 {
 		ctx.AbortWithStatusJSON(code401("token无法识别", 1))
@@ -158,9 +169,18 @@ func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T) bool {
 	return true
 }
 
+func tryRefreshToken(allowRefresh bool, ctx *gin.Context, iden userIdentity) {
+	if allowRefresh {
+		newToken := iden.canRefresh(time.Now())
+		if newToken != "" {
+			setToken(ctx, newToken)
+		}
+	}
+}
+
 // 中间件，要求用户必须进行管理员登录才能访问API。
 // 管理员信息(AdminIdentity类型)存至ctx.Keys["identity"]。
-// 同时，如果有效token签发时间已经超过一个阙值，则在header提供一个新的token
+// 同时，如果有效token签发时间已经超过一个阙值，则提供一个新的token
 func RequireAdminWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		iden := AdminIdentity{}
@@ -174,20 +194,14 @@ func RequireAdminWithRefresh(allowRefresh bool) gin.HandlerFunc {
 			return
 		}
 
-		//已确认token有效
-		if allowRefresh {
-			newToken := iden.canRefresh(time.Now())
-			//不需要刷新token，对header设空字符串不会报错
-			ctx.Header("rop-refresh-token", newToken)
-		}
+		tryRefreshToken(allowRefresh, ctx, iden)
 		ctx.Set("identity", iden)
-		ctx.Next()
 	}
 }
 
 // 中间件，要求用户必须进行登录才能访问API。适用于没有管理员权限的候选人登录。
 // 候选人信息(ApplicantIdentity类型)存至ctx.Keys["identity"]。
-// 同时，如果有效token签发时间已经超过一个阙值，则在header提供一个新的token
+// 同时，如果有效token签发时间已经超过一个阙值，则提供一个新的token
 func RequireLoginWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		iden := ApplicantIdentity{}
@@ -195,15 +209,8 @@ func RequireLoginWithRefresh(allowRefresh bool) gin.HandlerFunc {
 			return
 		}
 
-		//已确认token有效
-		if allowRefresh {
-			newToken := iden.canRefresh(time.Now())
-			//不需要刷新token
-			//对header设空字符串不会报错
-			ctx.Header("rop-refresh-token", newToken)
-		}
+		tryRefreshToken(allowRefresh, ctx, iden)
 		ctx.Set("identity", iden)
-		ctx.Next()
 	}
 }
 
@@ -260,7 +267,7 @@ func addVoidInfo(zjuId string, info voidInfo) {
 	}
 }
 
-func loginByToken(ctx *gin.Context) {
+func loginByPassportToken(ctx *gin.Context) {
 	type Arg struct {
 		Token    string `form:"SESSION_TOKEN" binding:"required"`
 		Continue string `form:"continue" binding:"required"`
@@ -287,6 +294,7 @@ func loginByToken(ctx *gin.Context) {
 	client := &http.Client{}
 	//这个地址就硬编码在这里了。passport更新了的话 结果解析也要改
 	req, _ := http.NewRequest("GET", "https://www.qsc.zju.edu.cn/passport/v4/profile", nil)
+	//此cookie为passportv4API所用
 	req.AddCookie(&http.Cookie{
 		Name:  "SESSION_TOKEN",
 		Value: token,
@@ -337,13 +345,13 @@ func loginByToken(ctx *gin.Context) {
 		//无管理权限，候选人登录
 		ropToken = newToken(ApplicantIdentity{
 			Iat:   now,
-			Exp:   now.Add(utils.ApplicantTokenDuration),
+			Exp:   now.Add(utils.Cfg.TokenDuration),
 			ZjuId: zjuId,
 		})
 	} else {
 		if len(admin) > 1 {
 			orgProfiles := model.GetAvailableOrgs(zjuId)
-			ctx.Redirect(302, utils.AddQuery(utils.MutipleChoicesRedirect,
+			ctx.Redirect(302, utils.AddQuery(utils.Cfg.MutipleChoicesRedirect,
 				map[string]string{
 					"choices":       utils.Stringify(orgProfiles),
 					"SESSION_TOKEN": token,
@@ -354,14 +362,15 @@ func loginByToken(ctx *gin.Context) {
 		exactAdmin := admin[0]
 		ropToken = newToken(AdminIdentity{
 			Iat:      now,
-			Exp:      now.Add(utils.AdminTokenDuration),
+			Exp:      now.Add(utils.Cfg.TokenDuration),
 			ZjuId:    exactAdmin.ZjuId,
 			At:       exactAdmin.At,
 			Nickname: exactAdmin.Nickname,
 			Level:    exactAdmin.Level,
 		})
 	}
-	ctx.Redirect(302, utils.AddQuery(continueUrl, map[string]string{"ropToken": ropToken}))
+	// setToken(ctx, ropToken)
+	ctx.Redirect(302, utils.AddQuery(continueUrl, map[string]string{TOKEN_KEY: ropToken}))
 }
 
 func authInit(routerGroup *gin.RouterGroup) {
@@ -387,7 +396,7 @@ func authInit(routerGroup *gin.RouterGroup) {
 		}
 	}()
 
-	routerGroup.GET("/loginByToken", loginByToken)
+	routerGroup.GET("/loginByPassportToken", loginByPassportToken)
 	routerGroup.GET("/logout", RequireLoginWithRefresh(false), logout)
 	routerGroup.GET("/logoutAll", RequireLoginWithRefresh(false), logoutAll)
 	//允许POST退出登录，兼容sendBeacon(实际逻辑不变，且不检查body)
