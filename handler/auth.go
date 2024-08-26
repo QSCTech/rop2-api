@@ -16,7 +16,15 @@ import (
 
 const TOKEN_KEY = "rop-token"
 
-func getToken(ctx *gin.Context) string {
+func getToken(ctx *gin.Context, fromBody bool) string {
+	if fromBody {
+		type Arg struct {
+			Token string `json:"token" binding:"required"`
+		}
+		arg := &Arg{}
+		ctx.ShouldBindJSON(arg) //绑定失败默认为空
+		return arg.Token
+	}
 	return ctx.GetHeader(TOKEN_KEY)
 }
 
@@ -117,12 +125,12 @@ func (info voidBefore) needVoid(status userIdentity) bool {
 // 读取token并转换，存储在resultPointer中，返回是否成功。
 //
 // golang默认json反序列化缺失字段不报错，必须另行是否是有效的AdminIdentity。
-func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T) bool {
+func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T, fromBody bool) bool {
 	code401 := func(message string, subCode int) (int, *utils.CodeMessageObj) {
 		return utils.Message(message, 401, subCode)
 	}
 	//token格式: base64encodedidentityjson base64sign
-	token := getToken(ctx)
+	token := getToken(ctx, fromBody)
 	parts := strings.Split(token, " ")
 	if len(parts) != 2 {
 		ctx.AbortWithStatusJSON(code401("token无法识别", 1))
@@ -184,7 +192,7 @@ func tryRefreshToken(allowRefresh bool, ctx *gin.Context, iden userIdentity) {
 func RequireAdminWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		iden := AdminIdentity{}
-		if !parseToken(ctx, &iden) {
+		if !parseToken(ctx, &iden, false) {
 			return
 		}
 
@@ -205,7 +213,7 @@ func RequireAdminWithRefresh(allowRefresh bool) gin.HandlerFunc {
 func RequireLoginWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		iden := ApplicantIdentity{}
-		if !parseToken(ctx, &iden) {
+		if !parseToken(ctx, &iden, false) {
 			return
 		}
 
@@ -399,7 +407,13 @@ func authInit(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/loginByPassportToken", loginByPassportToken)
 	routerGroup.GET("/logout", RequireLoginWithRefresh(false), logout)
 	routerGroup.GET("/logoutAll", RequireLoginWithRefresh(false), logoutAll)
-	//允许POST退出登录，兼容sendBeacon(实际逻辑不变，且不检查body)
-	routerGroup.POST("/logout", RequireLoginWithRefresh(false), logout)
-	routerGroup.POST("/logoutAll", RequireLoginWithRefresh(false), logoutAll)
+
+	//允许POST退出登录，兼容sendBeacon
+	routerGroup.POST("/logout", func(ctx *gin.Context) {
+		iden := ApplicantIdentity{} //管理员同样可以被反序列化为ApplicantIdentity
+		if parseToken(ctx, &iden, true) {
+			ctx.Set("identity", iden)
+			logout(ctx)
+		}
+	})
 }
