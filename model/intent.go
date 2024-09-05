@@ -50,6 +50,9 @@ type IntentOutline struct {
 	Phone  string `json:"phone"`
 	Depart uint32 `json:"depart"`
 	Order  int8   `json:"order"`
+
+	//候选人报名的面试信息（可能为空）
+	InterviewTime *time.Time `json:"interviewTime"`
 }
 type IntentList struct {
 	Intents       []IntentOutline `json:"intents"`
@@ -73,8 +76,13 @@ func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit i
 	intents := make([]IntentOutline, 0)
 	db.
 		Table("intents").
-		Select("people.*, intents.order, intents.depart, intents.id").
+		Select("people.name, people.zju_id, people.phone, intents.order, intents.depart, intents.id, interviews.start_at as InterviewTime").
+		//查询每个志愿 候选人的姓名、学号、手机号信息
 		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").
+		//根据候选人的学号关联所有报名过的面试id
+		Joins("LEFT JOIN interview_schedules ON people.zju_id = interview_schedules.zju_id").
+		//在上述的面试中，找到表单、志愿部门、阶段都匹配的面试
+		Joins("LEFT JOIN interviews ON interview_schedules.interview = interviews.id AND interviews.form = intents.form AND interviews.depart = intents.depart AND interviews.step = intents.step").
 		Where("intents.form = ?", formId).
 		Where("intents.depart IN ?", departs).
 		Where("intents.step = ?", step).
@@ -83,7 +91,8 @@ func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit i
 		Offset(offset).Limit(limit).
 		Scan(&intents)
 
-	var filteredCount int64 //在指定部门、阶段+filter过滤后的志愿数
+	var filteredCount int64 //在指定部门、阶段+filter过滤后的志愿数，实际上就是上方的查询改为count，不带offset和limit
+	//据称mysql会优化此类连续查询，不建议使用特殊常量获取count
 	db.
 		Table("intents").
 		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").

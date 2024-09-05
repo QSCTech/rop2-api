@@ -17,6 +17,8 @@ type Result struct {
 	UpdateAt time.Time `json:"updateAt" gorm:"not null;autoUpdateTime"`
 }
 
+// 注意：重新提交答卷/被管理员重置“已填表”状态，都不会影响已报名的面试
+// 即：即使不在对应阶段，候选人可能仍然在某场面试的名单中(类似面试后被拒绝，但仍然在原来的面试名单中)
 func SaveFullResult(formId uint32, zjuId PersonId, phone string, content string, intentDeparts []uint32) error {
 	//开事务，保证一致性
 	return db.Transaction(func(tx *gorm.DB) error {
