@@ -49,7 +49,7 @@ func AddScheduledId(interviewInst Interview, zjuId PersonId) (code int, obj any)
 			if usedCapacity >= int64(interviewInst.Capacity) {
 				return errors.New("面试已满")
 			}
-			tx.Create(InterviewSchedule{
+			tx.Create(&InterviewSchedule{
 				ZjuId:     zjuId,
 				Interview: interviewInst.Id,
 			})
@@ -60,7 +60,7 @@ func AddScheduledId(interviewInst Interview, zjuId PersonId) (code int, obj any)
 			return utils.Success()
 		}
 	case UnlimitedCapacity:
-		db.Create(InterviewSchedule{
+		db.Create(&InterviewSchedule{
 			ZjuId:     zjuId,
 			Interview: interviewInst.Id,
 		})
