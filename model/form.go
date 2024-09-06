@@ -167,7 +167,7 @@ func GetFormStatistic(formId uint32) FormStatistic {
 			Group("step").
 			Order("step ASC").
 			Scan(&peopleCountResult) //查询人数&志愿数
-		tx.Select("step, COUNT(CASE WHEN now() <= end_at THEN 1 END) as InterviewDone, COUNT(*) as InterviewCount").
+		tx.Select("step, COUNT(CASE WHEN now() >= end_at THEN 1 END) as InterviewDone, COUNT(*) as InterviewCount").
 			Table("interviews").
 			Where("form = ?", formId).
 			Group("step").
