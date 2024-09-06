@@ -20,8 +20,9 @@ func interviewInit(routerGroup *gin.RouterGroup) {
 	interviewGroup.POST("/freeze", RequireLevel(model.Maintainer), freezeInterview)
 
 	interviewGroup.GET("/schedule", getInterviewScheduledIds)
-	interviewGroup.POST("/schedule/delete", RequireLevel(model.Maintainer), deleteInterviewSchedule)
-	interviewGroup.POST("/schedule/add", RequireLevel(model.Maintainer), addInterviewSchedule)
+	//以下两个API暂未用到
+	// interviewGroup.POST("/schedule/delete", RequireLevel(model.Maintainer), deleteInterviewSchedule)
+	// interviewGroup.POST("/schedule/add", RequireLevel(model.Maintainer), addInterviewSchedule)
 }
 
 func listInterviews(ctx *gin.Context) {
@@ -175,47 +176,47 @@ func getInterviewScheduledIds(ctx *gin.Context) {
 	ctx.PureJSON(200, model.GetScheduledIds(interviewId))
 }
 
-func deleteInterviewSchedule(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(AdminIdentity)
-	type Arg struct {
-		Id    uint32         `json:"id" binding:"required"`
-		ZjuId model.PersonId `json:"zjuId" binding:"required"`
-	}
-	arg := &Arg{}
-	if ctx.ShouldBindJSON(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.MessageBindFail())
-		return
-	}
+// func deleteInterviewSchedule(ctx *gin.Context) {
+// 	id := ctx.MustGet("identity").(AdminIdentity)
+// 	type Arg struct {
+// 		Id    uint32         `json:"id" binding:"required"`
+// 		ZjuId model.PersonId `json:"zjuId" binding:"required"`
+// 	}
+// 	arg := &Arg{}
+// 	if ctx.ShouldBindJSON(arg) != nil {
+// 		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+// 		return
+// 	}
 
-	interviewId := arg.Id
-	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
-		ctx.AbortWithStatusJSON(utils.MessageNotFound())
-		return
-	}
+// 	interviewId := arg.Id
+// 	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
+// 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+// 		return
+// 	}
 
-	model.RemoveScheduledId(interviewId, arg.ZjuId)
-	ctx.PureJSON(utils.Success())
-}
+// 	model.RemoveScheduledId(interviewId, arg.ZjuId)
+// 	ctx.PureJSON(utils.Success())
+// }
 
-// 添加面试安排，不检查唯一性。管理员可以给一个学生添加多个面试安排
-func addInterviewSchedule(ctx *gin.Context) {
-	id := ctx.MustGet("identity").(AdminIdentity)
-	type Arg struct {
-		Id    uint32         `json:"id" binding:"required"`
-		ZjuId model.PersonId `json:"zjuId" binding:"required"`
-	}
-	arg := &Arg{}
-	if ctx.ShouldBindJSON(arg) != nil {
-		ctx.AbortWithStatusJSON(utils.MessageBindFail())
-		return
-	}
+// // 添加面试安排，不检查唯一性。管理员可以给一个学生添加多个面试安排
+// func addInterviewSchedule(ctx *gin.Context) {
+// 	id := ctx.MustGet("identity").(AdminIdentity)
+// 	type Arg struct {
+// 		Id    uint32         `json:"id" binding:"required"`
+// 		ZjuId model.PersonId `json:"zjuId" binding:"required"`
+// 	}
+// 	arg := &Arg{}
+// 	if ctx.ShouldBindJSON(arg) != nil {
+// 		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+// 		return
+// 	}
 
-	interviewId := arg.Id
-	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
-		ctx.AbortWithStatusJSON(utils.MessageNotFound())
-		return
-	}
+// 	interviewId := arg.Id
+// 	if qualified, _ := checkInterviewOwner(id, interviewId); !qualified {
+// 		ctx.AbortWithStatusJSON(utils.MessageNotFound())
+// 		return
+// 	}
 
-	model.AddScheduledId(interviewId, arg.ZjuId)
-	ctx.PureJSON(utils.Success())
-}
+// 	model.AddScheduledId(interviewId, arg.ZjuId)
+// 	ctx.PureJSON(utils.Success())
+// }
