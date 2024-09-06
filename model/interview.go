@@ -8,7 +8,7 @@ const (
 	//默认，人满就关
 	Auto InterviewStatus = 0
 	//无限容量，Capacity无效
-	Unlimited InterviewStatus = 10
+	UnlimitedCapacity InterviewStatus = 10
 	//被管理员手动冻结，不可报名/不可取消
 	Frozen InterviewStatus = 20
 )

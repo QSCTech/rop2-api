@@ -190,6 +190,8 @@ func applicantGetInterviewList(ctx *gin.Context) {
 	ctx.PureJSON(utils.MessageNotFound())
 }
 
+// 候选人报名面试。只需要提供formId和interviewId
+// 要求：候选人在指定的阶段内，且有指定部门的志愿，且该志愿未报名面试
 func applicantScheduleInterview(ctx *gin.Context) {
 	type Arg struct {
 		FormId      uint32 `form:"formId" binding:"required"`
@@ -216,10 +218,11 @@ func applicantScheduleInterview(ctx *gin.Context) {
 	}
 	for _, v := range intents { //对所有志愿遍历，看有没有符合阶段和部门的
 		if v.Depart == interviewInst.Depart && v.Step == interviewInst.Step {
-			model.AddScheduledId(arg.InterviewId, zjuId)
-			ctx.PureJSON(utils.Success())
+			//面试冻结、超量均在model.AddScheduledId检查
+			ctx.PureJSON(model.AddScheduledId(*interviewInst, zjuId))
 			return
 		}
 	}
+	//没有合适的志愿（此时不能选择面试）
 	ctx.PureJSON(utils.MessageNotFound())
 }
