@@ -86,9 +86,10 @@ func SaveFullResult(formId uint32, zjuId PersonId, phone string, content string,
 }
 
 type ResultDetail struct {
-	Name    string `json:"name"`
-	Phone   string `json:"phone"`
-	Content string `json:"content"`
+	ZjuId   PersonId `json:"zjuId"`
+	Name    string   `json:"name"`
+	Phone   string   `json:"phone"`
+	Content string   `json:"content"`
 }
 
 // 查询指定表单下一个或多个zju_id的答卷
@@ -96,7 +97,7 @@ func GetResult(formId uint32, zjuIds []PersonId) []*ResultDetail {
 	result := make([]*ResultDetail, 0)
 	db.
 		Model(&Result{}).
-		Select("people.name, people.phone, results.content").
+		Select("people.zju_id, people.name, people.phone, results.content").
 		Joins("LEFT JOIN people ON results.zju_id = people.zju_id").
 		Where("results.form = ? AND results.zju_id IN ?", formId, zjuIds).
 		Scan(&result)
