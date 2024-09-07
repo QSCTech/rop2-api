@@ -59,10 +59,10 @@ type InterviewInfo struct {
 
 //获取指定表单、阶段下，一个或多个部门的面试数组
 func GetInterviews(formId uint32, departs []uint32, step StepType) []*InterviewInfo {
-	var interviews []*InterviewInfo
+	interviews := make([]*InterviewInfo, 0)
 	db.
 		Select("interviews.*", "COUNT(interview_schedules.zju_id) AS UsedCapacity").
-		Table("interviews"). //from子句
+		Model(&Interview{}). //from子句
 		Joins("LEFT JOIN interview_schedules ON (interviews.id = interview_schedules.interview)").
 		Where("interviews.form = ? AND interviews.depart IN ? AND interviews.step = ?", formId, departs, step).
 		Group("interviews.id").

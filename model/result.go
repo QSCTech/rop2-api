@@ -93,7 +93,7 @@ type ResultDetail struct {
 
 // 查询指定表单下一个或多个zju_id的答卷
 func GetResult(formId uint32, zjuIds []PersonId) []*ResultDetail {
-	var result []*ResultDetail
+	result := make([]*ResultDetail, 0)
 	db.
 		Model(&Result{}).
 		Select("people.name, people.phone, results.content").

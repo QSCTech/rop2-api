@@ -152,13 +152,13 @@ func GetFormStatistic(formId uint32) FormStatistic {
 		PeopleCount  uint32
 		IntentsCount uint32
 	}
-	var peopleCountResult []DbPeopleCount
+	peopleCountResult := make([]DbPeopleCount, 0)
 	type DbInterviewCount struct {
 		Step           StepType
 		InterviewDone  uint32
 		InterviewCount uint32
 	}
-	var interviewCountResult []DbInterviewCount
+	interviewCountResult := make([]DbInterviewCount, 0)
 	var peopleCount int64 //整个表单的总人数
 	db.Transaction(func(tx *gorm.DB) error {
 		tx.Select("step, COUNT(DISTINCT zju_id) as PeopleCount, COUNT(*) as IntentsCount").
