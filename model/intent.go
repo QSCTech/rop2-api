@@ -76,13 +76,14 @@ func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit i
 	intents := make([]IntentOutline, 0)
 	db.
 		Table("intents").
-		Select("people.name, people.zju_id, people.phone, intents.order, intents.depart, intents.id, interviews.start_at as InterviewTime").
+		Select("people.name, people.zju_id, people.phone, intents.order, intents.depart, intents.id, scheduled_interviews.start_at as InterviewTime").
 		//查询每个志愿 候选人的姓名、学号、手机号信息
+		//此处INNER JOIN确保intents和people表都有zju_id对应的信息
 		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").
-		//根据候选人的学号关联所有报名过的面试id
-		Joins("LEFT JOIN interview_schedules ON people.zju_id = interview_schedules.zju_id").
-		//在上述的面试中，找到表单、志愿部门、阶段都匹配的面试
-		Joins("LEFT JOIN interviews ON interview_schedules.interview = interviews.id AND interviews.form = intents.form AND interviews.depart = intents.depart AND interviews.step = intents.step").
+		//根据志愿信息查询报名过的面试
+		//先把interview_schedules和interviews两表LEFT JOIN生成派生表scheduled_interviews(确保可在派生表中直接查询面试的form、depart、step等信息)
+		//然后把intents和scheduled_interviews两表LEFT JOIN，并限制派生表中的zju_id、form、depart、step与intents中对应
+		Joins("LEFT JOIN (SELECT interview_schedules.interview, interview_schedules.zju_id, interviews.* from interview_schedules LEFT JOIN interviews ON interview_schedules.interview = interviews.id) `scheduled_interviews` ON scheduled_interviews.zju_id = intents.zju_id AND scheduled_interviews.form = intents.form AND scheduled_interviews.depart = intents.depart AND scheduled_interviews.step = intents.step").
 		Where("intents.form = ?", formId).
 		Where("intents.depart IN ?", departs).
 		Where("intents.step = ?", step).
