@@ -91,17 +91,14 @@ type ResultDetail struct {
 	Content string `json:"content"`
 }
 
-func GetResult(formId uint32, zjuId string) *ResultDetail {
-	var contentArr []string
-	db.Model(&Result{}).Where("form = ? AND zju_id = ?", formId, zjuId).Pluck("content", &contentArr)
-	if len(contentArr) == 0 {
-		return nil
-	}
-	content := contentArr[0]
-	person := FindPerson(zjuId)
-	return &ResultDetail{
-		Name:    person.Name,
-		Phone:   *(person.Phone), //填表必须提交手机号，此处一定不为空指针
-		Content: content,
-	}
+// 查询指定表单下一个或多个zju_id的答卷
+func GetResult(formId uint32, zjuIds []PersonId) []*ResultDetail {
+	var result []*ResultDetail
+	db.
+		Model(&Result{}).
+		Select("people.name, people.phone, results.content").
+		Joins("LEFT JOIN people ON results.zju_id = people.zju_id").
+		Where("results.form = ? AND results.zju_id IN ?", formId, zjuIds).
+		Scan(&result)
+	return result
 }

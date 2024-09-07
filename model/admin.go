@@ -50,7 +50,7 @@ type AdminChoice struct {
 }
 
 func GetAvailableOrgs(zjuId string) []*AdminChoice {
-	profiles := make([]*AdminChoice, 2)
+	var profiles []*AdminChoice
 	db.
 		Table("admins").
 		Select("orgs.name as OrgName", "admins.at as OrgId").
@@ -80,7 +80,7 @@ func GetAdminsInOrg(orgId uint32, offset, limit int, filter string) AdminList {
 	if filter == "" {
 		filter = "^" //匹配所有
 	}
-	admins := make([]*AdminProfile, 0)
+	var admins []*AdminProfile
 	db.
 		Table("admins").
 		Select("Nickname", "Level", "Create_At", "Zju_Id").

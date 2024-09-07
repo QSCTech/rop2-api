@@ -73,7 +73,7 @@ func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit i
 		filter = "^" //匹配所有
 	}
 
-	intents := make([]IntentOutline, 0)
+	var intents []IntentOutline
 	db.
 		Table("intents").
 		Select("people.name, people.zju_id, people.phone, intents.order, intents.depart, intents.id, scheduled_interviews.start_at as InterviewTime").

@@ -57,8 +57,9 @@ type InterviewInfo struct {
 	UsedCapacity int32 `json:"usedCapacity"`
 }
 
-func GetInterviews(formId uint32, departs []uint32, step StepType) []InterviewInfo {
-	var interviews []InterviewInfo = make([]InterviewInfo, 0)
+//获取指定表单、阶段下，一个或多个部门的面试数组
+func GetInterviews(formId uint32, departs []uint32, step StepType) []*InterviewInfo {
+	var interviews []*InterviewInfo
 	db.
 		Select("interviews.*", "COUNT(interview_schedules.zju_id) AS UsedCapacity").
 		Table("interviews"). //from子句

@@ -23,16 +23,6 @@ type Person struct {
 	UpdateAt time.Time `json:"updateAt" gorm:"not null;autoUpdateTime"`
 }
 
-// 查询向某个表单递交过答卷的所有Person信息
-func GetParticipants(formId uint32) *[]Person {
-	result := make([]Person, 0)
-	db.Select("people.*").Table("results").
-		Joins("INNER JOIN people ON results.zju_id = people.zju_id").
-		Where("results.form = ?", formId).
-		Scan(&result)
-	return &result
-}
-
 // 创建自然人信息，如果已存在则不操作
 func EnsurePerson(zjuId string, name string) {
 	var count int64

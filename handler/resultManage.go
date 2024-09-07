@@ -50,12 +50,13 @@ func listIntents(ctx *gin.Context) {
 	ctx.PureJSON(200, model.ListIntents(formId, departIds, arg.Step, arg.Offset, arg.Limit, arg.Filter))
 }
 
+// 获取候选人的详细答卷，一次性获取多个并返回数组
 func getResultDetail(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(AdminIdentity)
 	type Arg struct {
 		//注：binding:"required"会拒绝0值
 		FormId uint32 `form:"formId" binding:"required"`
-		Target string `form:"target" binding:"required"`
+		Target string `form:"target" binding:"required"` //格式：1,2,3
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindQuery(arg) != nil {
@@ -69,7 +70,7 @@ func getResultDetail(ctx *gin.Context) {
 		return
 	}
 
-	ctx.PureJSON(200, model.GetResult(formId, arg.Target))
+	ctx.PureJSON(200, model.GetResult(formId, strings.Split(arg.Target, ",")))
 }
 
 func setIntents(ctx *gin.Context) {
