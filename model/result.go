@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // 报名者答卷。同一人报名多个志愿部门，仅一份答卷，但生成多个Intent。
@@ -28,38 +29,56 @@ func SaveFullResult(formId uint32, zjuId PersonId, phone string, content string,
 		}
 
 		//更新答卷
-		lastResult := Result{}
-		tx.Where("form = ? AND zju_id = ?", formId, zjuId).First(&lastResult)
-		if lastResult.Form == formId { //查询有结果
-			//更新
-			if err := tx.Model(&Result{}).Where("form = ? AND zju_id = ?", formId, zjuId).Update("Content", content).Error; err != nil {
-				return err
-			}
-		} else {
-			//创建
-			if err := tx.Create(&Result{
+		if err := tx.
+			//id由数据库自动生成；create_at和update_at由gorm添加
+			Select("form", "zju_id", "content").
+			Clauses(clause.OnConflict{
+				DoUpdates: clause.AssignmentColumns([]string{"content", "update_at"})}).
+			Create(&Result{
 				Form:    formId,
 				ZjuId:   zjuId,
 				Content: content,
 			}).Error; err != nil {
+			return err
+		}
+
+		//更新志愿部门
+		if err := tx. //删除不再存在的志愿
+				Where("form = ? AND zju_id = ?", formId, zjuId).
+				Where("depart NOT IN ?", intentDeparts).
+				Delete(&Intent{}).Error; err != nil {
+			return err
+		}
+		var interviewScheduleIdsToDelete []uint32
+		tx. //查询需要删除的面试安排
+			Model(&InterviewSchedule{}).
+			Joins("INNER JOIN interviews on interview_schedules.interview = interviews.id").
+			Where("form = ? AND zju_id = ?", formId, zjuId).
+			Where("interviews.depart NOT IN ?", intentDeparts).
+			Pluck("interview_schedules.id", &interviewScheduleIdsToDelete)
+		if len(interviewScheduleIdsToDelete) > 0 {
+			if err := tx. //实际删除面试安排
+					Delete(&InterviewSchedule{}, "id IN ?", interviewScheduleIdsToDelete).Error; err != nil {
 				return err
 			}
 		}
 
-		//更新志愿部门
-		if err := tx.Delete(&Intent{}, "form = ? AND zju_id = ?", formId, zjuId).Error; err != nil {
-			return err
-		}
-		intents := make([]Intent, len(intentDeparts))
+		intents := make([]*Intent, len(intentDeparts))
 		for i, v := range intentDeparts {
-			intents[i] = Intent{
+			intents[i] = &Intent{
 				Form:   formId,
 				ZjuId:  zjuId,
 				Depart: v,
 				Order:  int8(i + 1),
 			}
 		}
-		if err := tx.Select("Form", "ZjuId", "Depart", "Order").Create(intents).Error; err != nil {
+		if err := tx.
+			//id由数据库自动生成；step默认为0；=
+			//create_at和update_at由gorm添加
+			Select("Form", "ZjuId", "Depart", "Order").
+			Clauses(clause.OnConflict{ //冲突时仅更新order和update_at
+				DoUpdates: clause.AssignmentColumns([]string{"order", "update_at"})}).
+			Create(intents).Error; err != nil {
 			return err
 		}
 		return nil

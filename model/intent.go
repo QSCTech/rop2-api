@@ -11,13 +11,13 @@ type Intent struct {
 	//自增主键，志愿id
 	Id uint32 `json:"id" gorm:"primaryKey;autoIncrement"`
 	//来源表单（也确定了申请的组织）
-	Form uint32 `json:"form" gorm:"not null;uniqueIndex:zjuid_form_intent,sort:desc"`
+	Form uint32 `json:"form" gorm:"not null;uniqueIndex:form_zjuid_depart,sort:desc"`
 	//申请人学号
-	ZjuId string `json:"zjuId" gorm:"type:char(10);not null;uniqueIndex:zjuid_form_intent,sort:desc"`
+	ZjuId string `json:"zjuId" gorm:"type:char(10);not null;uniqueIndex:form_zjuid_depart,sort:desc"`
 	//志愿部门，可能为默认部门（如果未选择志愿部门）
-	Depart uint32 `json:"depart" gorm:"not null;uniqueIndex:zjuid_form_intent"`
+	Depart uint32 `json:"depart" gorm:"not null;uniqueIndex:form_zjuid_depart"`
 	//志愿排序。1~127=第n志愿
-	Order int8 `json:"order" gorm:"not null;uniqueIndex:zjuid_form_intent,sort:asc"`
+	Order int8 `json:"order" gorm:"not null"`
 	//当前所在阶段。1~127=第n阶段(可重命名)
 	Step StepType `json:"step" gorm:"not null;default:0"`
 
