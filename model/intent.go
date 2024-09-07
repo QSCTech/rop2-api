@@ -81,19 +81,19 @@ func ListIntents(formId uint32, departs []uint32, step StepType, offset, limit i
 		//此处INNER JOIN确保intents和people表都有zju_id对应的信息
 		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").
 		//根据志愿信息查询报名过的面试
-		//先把interview_schedules和interviews两表LEFT JOIN生成派生表scheduled_interviews(确保可在派生表中直接查询面试的form、depart、step等信息)
+		//先把interview_schedules和interviews两表INNER JOIN生成派生表scheduled_interviews(确保可在派生表中直接查询面试的form、depart、step等信息)
 		//然后把intents和scheduled_interviews两表LEFT JOIN，并限制派生表中的zju_id、form、depart、step与intents中对应
-		Joins("LEFT JOIN (SELECT interview_schedules.interview, interview_schedules.zju_id, interviews.* from interview_schedules LEFT JOIN interviews ON interview_schedules.interview = interviews.id) `scheduled_interviews` ON scheduled_interviews.zju_id = intents.zju_id AND scheduled_interviews.form = intents.form AND scheduled_interviews.depart = intents.depart AND scheduled_interviews.step = intents.step").
+		Joins("LEFT JOIN (SELECT interview_schedules.interview, interview_schedules.zju_id, interviews.* from interview_schedules INNER JOIN interviews ON interview_schedules.interview = interviews.id) `scheduled_interviews` ON scheduled_interviews.zju_id = intents.zju_id AND scheduled_interviews.form = intents.form AND scheduled_interviews.depart = intents.depart AND scheduled_interviews.step = intents.step").
 		Where("intents.form = ?", formId).
 		Where("intents.depart IN ?", departs).
 		Where("intents.step = ?", step).
 		Where("people.name REGEXP ? OR people.zju_id REGEXP ? OR people.phone REGEXP ?", filter, filter, filter).
-		Order("intents.create_at ASC, intents.order ASC").
+		Order("intents.create_at ASC, intents.order ASC"). //先按志愿生成时间升序，再按志愿序号升序
 		Offset(offset).Limit(limit).
 		Scan(&intents)
 
-	var filteredCount int64 //在指定部门、阶段+filter过滤后的志愿数，实际上就是上方的查询改为count，不带offset和limit
-	//据称mysql会优化此类连续查询，不建议使用特殊常量获取count
+	var filteredCount int64 //在指定部门、阶段+filter过滤后的志愿数，实际上就是上方的查询改为count，不带order/offset/limit
+	//据称mysql会优化此类连续查询，不建议使用特殊常量等方法获取count
 	db.
 		Table("intents").
 		Joins("INNER JOIN people ON intents.zju_id = people.zju_id").

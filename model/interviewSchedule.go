@@ -20,7 +20,7 @@ type InterviewSchedule struct {
 
 // 查询报名指定面试的所有学号
 func GetScheduledIds(interviewId uint32) []PersonId {
-	result := make([]PersonId, 0)
+	var result []PersonId
 	db.Model(&InterviewSchedule{}).Where("interview = ?", interviewId).Pluck("zju_id", &result)
 	return result
 }

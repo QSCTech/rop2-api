@@ -73,7 +73,7 @@ type ResultDetail struct {
 }
 
 func GetResult(formId uint32, zjuId string) *ResultDetail {
-	contentArr := make([]string, 0)
+	var contentArr []string
 	db.Model(&Result{}).Where("form = ? AND zju_id = ?", formId, zjuId).Pluck("content", &contentArr)
 	if len(contentArr) == 0 {
 		return nil
