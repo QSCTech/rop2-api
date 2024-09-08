@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"rop2-api/model"
@@ -122,7 +124,7 @@ func (info voidBefore) needVoid(status userIdentity) bool {
 	return status.getIat().Compare(info.before) <= 0
 }
 
-// 读取token并转换，存储在resultPointer中，返回是否成功。
+// 读取token并转换，存储在resultPointer中。如果失败将调用ctx.AbortWithStatusJSON并返回false。
 //
 // golang默认json反序列化缺失字段不报错，必须另行是否是有效的AdminIdentity。
 func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T, fromBody bool) bool {
@@ -177,6 +179,8 @@ func parseToken[T userIdentity](ctx *gin.Context, resultPointer *T, fromBody boo
 	return true
 }
 
+// 尝试刷新token。条件满足则设置新token，否则不做操作；
+// 不检查现有token的合法性。
 func tryRefreshToken(allowRefresh bool, ctx *gin.Context, iden userIdentity) {
 	if allowRefresh {
 		newToken := iden.canRefresh(time.Now())
@@ -184,6 +188,26 @@ func tryRefreshToken(allowRefresh bool, ctx *gin.Context, iden userIdentity) {
 			setToken(ctx, newToken)
 		}
 	}
+}
+
+// 记录请求日志，必须已登录成功
+func logContext(ctx *gin.Context) {
+	zjuId := ctx.MustGet("identity").(userIdentity).getId()
+	path := ctx.Request.URL.Path
+	if ctx.Request.URL.RawQuery != "" {
+		path += "?" + ctx.Request.URL.RawQuery
+	}
+
+	body, err := io.ReadAll(ctx.Request.Body)
+	if err != nil {
+		log.Println("GetRawData failed", err.Error())
+		return
+	}
+	ctx.Request.Body = io.NopCloser(bytes.NewBuffer(body)) //确保后续中间件能正常读取body
+	ctx.Next()
+
+	status := ctx.Writer.Status()
+	model.CreateLog(zjuId, ctx.Request.Method, path, &body, int16(status))
 }
 
 // 中间件，要求用户必须进行管理员登录才能访问API。
@@ -204,6 +228,8 @@ func RequireAdminWithRefresh(allowRefresh bool) gin.HandlerFunc {
 
 		tryRefreshToken(allowRefresh, ctx, iden)
 		ctx.Set("identity", iden)
+
+		logContext(ctx)
 	}
 }
 
@@ -219,6 +245,8 @@ func RequireLoginWithRefresh(allowRefresh bool) gin.HandlerFunc {
 
 		tryRefreshToken(allowRefresh, ctx, iden)
 		ctx.Set("identity", iden)
+
+		logContext(ctx)
 	}
 }
 
@@ -338,7 +366,7 @@ func loginByPassportToken(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(utils.Message("无法获取个人信息", 401, 52))
 		return
 	}
-	model.EnsurePerson(zjuId, name)
+	model.EnsurePerson(zjuId, name) //确保指定的个人信息存在(不存在则创建)
 
 	// //TODO: DEBUG ONLY
 	// //添加测试组织管理员权限
@@ -357,7 +385,7 @@ func loginByPassportToken(ctx *gin.Context) {
 			ZjuId: zjuId,
 		})
 	} else {
-		if len(admin) > 1 {
+		if len(admin) > 1 { //多组织管理员
 			orgProfiles := model.GetAvailableOrgs(zjuId)
 			ctx.Redirect(302, utils.AddQuery(utils.Cfg.MutipleChoicesRedirect,
 				map[string]string{
@@ -412,7 +440,7 @@ func authInit(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/logout", func(ctx *gin.Context) {
 		iden := ApplicantIdentity{} //管理员同样可以被反序列化为ApplicantIdentity
 		if parseToken(ctx, &iden, true) {
-			ctx.Set("identity", iden)
+			ctx.Set("identity", iden) //设置identity，以便后续调用logout
 			logout(ctx)
 		}
 	})

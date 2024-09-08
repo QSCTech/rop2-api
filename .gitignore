@@ -1,3 +1,4 @@
 local.*
+__debug*.exe
 
 config.yml

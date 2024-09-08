@@ -38,9 +38,15 @@ func ResetDb() {
 	db.Exec("DROP DATABASE IF EXISTS rop2;")
 	db.Exec("CREATE DATABASE rop2;")
 	db.Exec("USE rop2;")
-	migrator := db.Migrator()
-	migrator.AutoMigrate(&Org{}, &Depart{}, &Admin{}, &Template{}, &Stage{}, &Form{}, &Person{}, &Intent{}, &Result{}, &Interview{},
-		&InterviewSchedule{})
+	db.
+		Migrator().
+		AutoMigrate(
+			&Org{}, &Depart{}, &Admin{},
+			&Template{}, &Stage{},
+			&Form{}, &Person{}, &Intent{}, &Result{},
+			&Interview{}, &InterviewSchedule{},
+			&Log{},
+		)
 
 	//建表完成，添加外键
 	const restrict, cascade, setNull = "RESTRICT", "CASCADE", "SET NULL"
