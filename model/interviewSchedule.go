@@ -25,14 +25,14 @@ func GetScheduledIds(interviewId uint32) []PersonId {
 	return result
 }
 
-func RemoveScheduledId(interviewId uint32, zjuId PersonId) {
+func DeleteInterviewSchedule(interviewId uint32, zjuId PersonId) {
 	db.Where("interview = ? AND zju_id = ?", interviewId, zjuId).Delete(&InterviewSchedule{})
 }
 
 // 添加指定的面试信息，将检查时间（该面试必须未开始）、冻结和可用容量（使用事务查询、插入）。
 //
 // 注意不检查指定的学生是否有权限选择面试，也不检查其是否选择过面试，只检查面试能否再加人
-func AddScheduledId(interviewInst Interview, zjuId PersonId) (code int, obj any) {
+func AddInterviewScheduleChecked(interviewInst Interview, zjuId PersonId) (code int, obj any) {
 	if interviewInst.StartAt.Before(time.Now()) {
 		return utils.Message("面试已开始", 400, 32)
 	}
@@ -49,10 +49,7 @@ func AddScheduledId(interviewInst Interview, zjuId PersonId) (code int, obj any)
 			if usedCapacity >= int64(interviewInst.Capacity) {
 				return errors.New("面试已满")
 			}
-			tx.Create(&InterviewSchedule{
-				ZjuId:     zjuId,
-				Interview: interviewInst.Id,
-			})
+			AddInterviewSchedule(tx, interviewInst.Id, zjuId)
 			return nil
 		}) != nil {
 			return utils.Message("面试已满", 400, 34)
@@ -60,14 +57,21 @@ func AddScheduledId(interviewInst Interview, zjuId PersonId) (code int, obj any)
 			return utils.Success()
 		}
 	case UnlimitedCapacity:
-		db.Create(&InterviewSchedule{
-			ZjuId:     zjuId,
-			Interview: interviewInst.Id,
-		})
+		AddInterviewSchedule(db, interviewInst.Id, zjuId)
 		return utils.Success()
 	default:
 		return utils.Message("面试状态未知", 500, 32)
 	}
+}
+
+// 添加面试安排。不做任何检查，仅调用数据库Create方法。
+func AddInterviewSchedule(dbInst *gorm.DB, interviewId uint32, zjuId PersonId) {
+	dbInst.
+		Select("interview", "zju_id").
+		Create(&InterviewSchedule{
+			Interview: interviewId,
+			ZjuId:     zjuId,
+		})
 }
 
 // 查看对于指定志愿是否安排了面试

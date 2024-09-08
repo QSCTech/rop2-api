@@ -11,6 +11,11 @@ import (
 
 var db *gorm.DB
 
+// 返回默认*gorm.DB，仅用于提供dbInst，不应在handler包内直接操作数据库。
+func DefaultDb() *gorm.DB {
+	return db
+}
+
 // TODO 测试组织ID，会给所有登录用户添加权限，正式环境应删除
 var TestOrgId uint32 = 1
 

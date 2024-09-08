@@ -219,7 +219,7 @@ func applicantScheduleInterview(ctx *gin.Context) {
 	for _, v := range intents { //对所有志愿遍历，看有没有符合阶段和部门的
 		if v.Depart == interviewInst.Depart && v.Step == interviewInst.Step {
 			//面试冻结、超量均在model.AddScheduledId检查
-			ctx.PureJSON(model.AddScheduledId(*interviewInst, zjuId))
+			ctx.PureJSON(model.AddInterviewScheduleChecked(*interviewInst, zjuId))
 			return
 		}
 	}
