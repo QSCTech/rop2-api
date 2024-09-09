@@ -81,7 +81,7 @@ func GetAdminsInOrg(orgId uint32, offset, limit int, filter string) AdminList {
 	if filter == "" {
 		filter = "^" //匹配所有
 	}
-	var admins []*AdminProfile
+	admins := make([]*AdminProfile, 0)
 	db.
 		Table("admins").
 		Select("Nickname", "Level", "Create_At", "Zju_Id").
@@ -99,8 +99,7 @@ func GetAdminsInOrg(orgId uint32, offset, limit int, filter string) AdminList {
 		Where("nickname REGEXP ?", filter).
 		Count(&filteredCount) //mysql有优化
 
-	var list = AdminList{Admins: admins, Count: count, FilteredCount: filteredCount}
-	return list
+	return AdminList{Admins: admins, Count: count, FilteredCount: filteredCount}
 }
 
 // 设置管理员，若level为Null则删除
