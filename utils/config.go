@@ -43,7 +43,6 @@ var Cfg = Config{
 
 var (
 	LoginCallbackRegex *regexp.Regexp
-	TokenValidSince    time.Time = time.Now()
 	IdentityKey        []byte
 )
 
@@ -73,9 +72,6 @@ func Init() {
 	}
 
 	LoginCallbackRegex = regexp.MustCompile(Cfg.LoginCallbackRegex)
-	if argContains("saveToken") { //允许使用之前的token(需使用同一IdentityKey签名)
-		TokenValidSince = time.Now().Add(-time.Hour * 24 * 365)
-	}
 	if Cfg.IdentityKey == "" {
 		log.Fatal("IdentityKey is empty")
 		return
