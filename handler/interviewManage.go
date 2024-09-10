@@ -54,6 +54,7 @@ func listInterviews(ctx *gin.Context) {
 	ctx.PureJSON(200, model.GetInterviews(formId, departIds, arg.Step))
 }
 
+// 根据id获取面试详情，仅限管理员
 func getInterviewDetail(ctx *gin.Context) {
 	id := ctx.MustGet("identity").(AdminIdentity)
 	type Arg struct {
@@ -95,6 +96,7 @@ func addInterview(ctx *gin.Context) {
 		Location string    `json:"location" binding:"required"`
 		StartAt  time.Time `json:"startAt" binding:"required"`
 		EndAt    time.Time `json:"endAt" binding:"required"`
+		Comment  *string   `json:"comment"` //可选，也可能是空字符串（也存数据库，由前端再判断）
 	}
 	arg := &Arg{}
 	if ctx.ShouldBindJSON(arg) != nil {
@@ -108,7 +110,7 @@ func addInterview(ctx *gin.Context) {
 		return
 	}
 
-	model.AddInterview(arg.FormId, arg.Depart, arg.Step, arg.Capacity, arg.Location, arg.StartAt, arg.EndAt)
+	model.AddInterview(arg.FormId, arg.Depart, arg.Step, arg.Capacity, arg.Location, arg.StartAt, arg.EndAt, arg.Comment)
 	ctx.PureJSON(200, gin.H{
 		"code": 0,
 	})

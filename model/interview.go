@@ -26,6 +26,8 @@ type Interview struct {
 	Location string    `json:"location" gorm:"not null"`
 	StartAt  time.Time `json:"startAt" gorm:"not null"`
 	EndAt    time.Time `json:"endAt" gorm:"not null"`
+	//面试备注（所有人可见，包括未选择此面试的）
+	Comment *string `json:"comment" gorm:"type:text;default:null"`
 
 	CreateAt time.Time `json:"createAt" gorm:"not null;autoCreateTime"`
 	UpdateAt time.Time `json:"updateAt" gorm:"not null;autoUpdateTime"`
@@ -40,7 +42,8 @@ func GetInterviewById(id uint32) *Interview {
 	}
 }
 
-//面试基本信息，包括已用容量。没有createAt和updateAt
+//面试基本信息，包括已用容量(JOIN获得结果)。没有createAt和updateAt
+//供候选人报名时查看
 type InterviewInfo struct {
 	Id uint32 `json:"id"`
 
@@ -53,6 +56,7 @@ type InterviewInfo struct {
 	Location string    `json:"location"`
 	StartAt  time.Time `json:"startAt"`
 	EndAt    time.Time `json:"endAt"`
+	Comment  *string   `json:"comment" gorm:"type:text;default:null"`
 
 	UsedCapacity int32 `json:"usedCapacity"`
 }
@@ -70,7 +74,7 @@ func GetInterviews(formId uint32, departs []uint32, step StepType) []*InterviewI
 	return interviews
 }
 
-func AddInterview(formId, depart uint32, step StepType, capacity int32, location string, startAt, endAt time.Time) uint32 {
+func AddInterview(formId, depart uint32, step StepType, capacity int32, location string, startAt, endAt time.Time, comment *string) uint32 {
 	obj := Interview{
 		Form:     formId,
 		Depart:   depart,
@@ -80,6 +84,7 @@ func AddInterview(formId, depart uint32, step StepType, capacity int32, location
 		Location: location,
 		StartAt:  startAt,
 		EndAt:    endAt,
+		Comment:  comment,
 	}
 	db.Create(&obj)
 	return obj.Id

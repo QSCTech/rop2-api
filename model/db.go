@@ -29,6 +29,11 @@ func Init() {
 	if err != nil {
 		panic(err)
 	}
+
+	if utils.Cfg.MigrateDb {
+		migrate()
+	}
+
 	var testOrgIds []uint32
 	db.Model(&Org{}).Where("name = ?", "测试组织").Limit(1).Pluck("id", &testOrgIds)
 	if len(testOrgIds) > 0 {
@@ -38,11 +43,8 @@ func Init() {
 	}
 }
 
-// 删除并重建数据库结构
-func ResetDb() {
-	db.Exec("DROP DATABASE IF EXISTS rop2;")
-	db.Exec("CREATE DATABASE rop2;")
-	db.Exec("USE rop2;")
+func migrate() {
+	println("Migrating database...")
 	db.
 		Migrator().
 		AutoMigrate(
@@ -52,6 +54,15 @@ func ResetDb() {
 			&Interview{}, &InterviewSchedule{},
 			&Log{},
 		)
+	println("Migration done.")
+}
+
+// 删除并重建数据库结构
+func ResetDb() {
+	db.Exec("DROP DATABASE IF EXISTS rop2;")
+	db.Exec("CREATE DATABASE rop2;")
+	db.Exec("USE rop2;")
+	migrate()
 
 	//建表完成，添加外键
 	const restrict, cascade, setNull = "RESTRICT", "CASCADE", "SET NULL"

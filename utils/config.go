@@ -17,10 +17,6 @@ type Config struct {
 
 	LoginCallbackRegex string `yaml:"LoginCallbackRegex"`
 
-	// TokenDomain string `yaml:"TokenDomain"`
-	// TokenPath   string `yaml:"TokenPath"`
-	// TokenSecure bool   `yaml:"TokenSecure"`
-
 	//加密凭据的密钥
 	IdentityKey string `yaml:"IdentityKey"`
 	//自动刷新token距token签发需经过的时间
@@ -29,6 +25,9 @@ type Config struct {
 	TokenDuration time.Duration `yaml:"TokenDuration"`
 
 	CORSAllowOrigins []string `yaml:"CORSAllowOrigins"`
+
+	//是否由gorm自动迁移数据库，建议仅在开发时使用
+	MigrateDb bool `yaml:"MigrateDb"`
 }
 
 var Cfg = Config{
@@ -39,6 +38,7 @@ var Cfg = Config{
 	TokenRefreshAfter:      time.Minute * 2,
 	TokenDuration:          time.Hour * 24 * 1,
 	CORSAllowOrigins:       []string{"http://localhost:5173"},
+	MigrateDb:              false,
 }
 
 var (
