@@ -71,6 +71,7 @@ func ResetDb() {
 
 	db.Exec(fkBuilder("departs", "owner", "orgs", "id", cascade)) //删除组织时自动删除所有部门
 
+	//管理员zju_id不设外键，便于为从未登录过的学号添加管理权限
 	db.Exec(fkBuilder("admins", "at", "orgs", "id", cascade)) //删除组织时自动删除所有管理员
 
 	db.Exec(fkBuilder("templates", "owner", "orgs", "id", cascade)) //删除组织时自动删除所有模板

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // TODO: 把类型为string的zjuId改为PersonId方便后面修改
@@ -23,14 +24,14 @@ type Person struct {
 	UpdateAt time.Time `json:"updateAt" gorm:"not null;autoUpdateTime"`
 }
 
-// 创建自然人信息，如果已存在则不操作
+// 创建自然人信息，如果已存在则更新姓名(避免批量导入时存在错误)
 func EnsurePerson(zjuId string, name string) {
-	var count int64
-	//不用Save，Save会更新所有字段，如果不查询就可能覆盖掉phone
-	db.Model(&Person{}).Where("zju_id = ?", zjuId).Count(&count)
-	if count == 0 {
-		db.Create(&Person{ZjuId: zjuId, Name: name, Phone: nil})
-	}
+	db.
+		Select("zju_id", "name").
+		Clauses(clause.OnConflict{
+			DoUpdates: clause.AssignmentColumns([]string{"name"}),
+		}).
+		Create(&Person{ZjuId: zjuId, Name: name})
 }
 
 func FindPerson(zjuId string) *Person {
