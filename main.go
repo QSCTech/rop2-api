@@ -33,7 +33,8 @@ func main() {
 			AllowOrigins:     utils.Cfg.CORSAllowOrigins,
 			AllowMethods:     []string{"*"},
 			AllowHeaders:     []string{"*"},
-			AllowCredentials: true,
+			ExposeHeaders:    []string{"*"},
+			AllowCredentials: false,
 			MaxAge:           10 * time.Minute, //根据规范，预检请求缓存时间不超过10min
 		}))
 	} else {
