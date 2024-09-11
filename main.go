@@ -36,6 +36,8 @@ func main() {
 			AllowCredentials: true,
 			MaxAge:           10 * time.Minute, //根据规范，预检请求缓存时间不超过10min
 		}))
+	} else {
+		println("CORS disabled")
 	}
 
 	rootRouter := &server.RouterGroup

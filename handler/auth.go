@@ -299,6 +299,19 @@ func addVoidInfo(zjuId string, info voidInfo) {
 	}
 }
 
+func tokenForAdmin(admin model.Admin) string {
+	now := time.Now()
+	return newToken(AdminIdentity{
+		Iat:      now,
+		Exp:      now.Add(utils.Cfg.TokenDuration),
+		ZjuId:    admin.ZjuId,
+		At:       admin.At,
+		Nickname: admin.Nickname,
+		Level:    admin.Level,
+	})
+}
+
+// 使用passport的SESSION_TOKEN登录并重定向至指定地址（token作为query传递到continueUrl，不在header提供）
 func loginByPassportToken(ctx *gin.Context) {
 	type Arg struct {
 		Token    string `form:"SESSION_TOKEN" binding:"required"`
@@ -392,17 +405,44 @@ func loginByPassportToken(ctx *gin.Context) {
 			return
 		}
 		exactAdmin := admin[0]
-		ropToken = newToken(AdminIdentity{
-			Iat:      now,
-			Exp:      now.Add(utils.Cfg.TokenDuration),
-			ZjuId:    exactAdmin.ZjuId,
-			At:       exactAdmin.At,
-			Nickname: exactAdmin.Nickname,
-			Level:    exactAdmin.Level,
-		})
+		ropToken = tokenForAdmin(*exactAdmin)
 	}
 	// setToken(ctx, ropToken)
 	ctx.Redirect(302, utils.AddQuery(continueUrl, map[string]string{TOKEN_KEY: ropToken}))
+}
+
+// 查询可管理的组织(需要登录)
+func getAvailableOrgs(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(userIdentity)
+	zjuId := id.getId()
+
+	ctx.PureJSON(200, model.GetAvailableOrgs(zjuId))
+}
+
+// 切换登录组织，若成功返回新的rop-token，并使当前token失效
+func switchOrg(ctx *gin.Context) {
+	id := ctx.MustGet("identity").(userIdentity)
+	zjuId := id.getId()
+	type Arg struct {
+		OrgId uint32 `form:"orgId" binding:"required"`
+	}
+	arg := &Arg{}
+	if ctx.ShouldBindQuery(arg) != nil {
+		ctx.AbortWithStatusJSON(utils.MessageBindFail())
+		return
+	}
+
+	orgId := arg.OrgId
+	admins := model.GetAdmin(zjuId, orgId)
+	if len(admins) == 0 {
+		ctx.AbortWithStatusJSON(utils.MessageForbidden())
+		return
+	}
+
+	admin := admins[0]
+	setToken(ctx, tokenForAdmin(*admin))
+	logout(ctx)
+	ctx.PureJSON(utils.Success())
 }
 
 func authInit(routerGroup *gin.RouterGroup) {
@@ -440,4 +480,7 @@ func authInit(routerGroup *gin.RouterGroup) {
 			logout(ctx)
 		}
 	})
+
+	routerGroup.GET("/availableOrgs", RequireLoginWithRefresh(true), getAvailableOrgs)
+	routerGroup.POST("/switchOrg", RequireLoginWithRefresh(false), switchOrg)
 }

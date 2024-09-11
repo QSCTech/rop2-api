@@ -51,13 +51,13 @@ type AdminChoice struct {
 
 // 获取指定学号可管理的组织，返回组织id+组织名
 func GetAvailableOrgs(zjuId string) []*AdminChoice {
-	var profiles []*AdminChoice
+	profiles := make([]*AdminChoice, 0)
 	db.
 		Table("admins").
 		Select("orgs.name as OrgName", "admins.at as OrgId").
 		Joins("JOIN orgs ON admins.at = orgs.id").
 		Where("admins.zju_id = ?", zjuId).
-		Scan(&profiles) //可认为非空
+		Scan(&profiles)
 	return profiles
 }
 
