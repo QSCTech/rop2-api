@@ -427,7 +427,7 @@ func switchOrg(ctx *gin.Context) {
 		OrgId uint32 `form:"orgId" binding:"required"`
 	}
 	arg := &Arg{}
-	if ctx.ShouldBindQuery(arg) != nil {
+	if ctx.ShouldBindJSON(arg) != nil {
 		ctx.AbortWithStatusJSON(utils.MessageBindFail())
 		return
 	}
@@ -441,7 +441,7 @@ func switchOrg(ctx *gin.Context) {
 
 	admin := admins[0]
 	setToken(ctx, tokenForAdmin(*admin))
-	logout(ctx)
+	addVoidInfo(id.getId(), voidOne{iat: id.getIat()}) //退出登录
 	ctx.PureJSON(utils.Success())
 }
 
