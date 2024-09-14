@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"regexp"
 	"rop2-api/model"
@@ -186,63 +184,39 @@ func tryRefreshToken(allowRefresh bool, ctx *gin.Context, iden userIdentity) {
 	}
 }
 
-// 记录请求日志，必须已登录成功
-func logContext(ctx *gin.Context) {
-	zjuId := ctx.MustGet("identity").(userIdentity).getId()
-	path := ctx.Request.URL.Path
-	if ctx.Request.URL.RawQuery != "" {
-		path += "?" + ctx.Request.URL.RawQuery
-	}
-
-	body, err := io.ReadAll(ctx.Request.Body)
-	if err != nil {
-		log.Println("GetRawData failed", err.Error())
-		return
-	}
-	ctx.Request.Body = io.NopCloser(bytes.NewBuffer(body)) //确保后续中间件能正常读取body
-	ctx.Next()
-
-	status := ctx.Writer.Status()
-	model.CreateLog(zjuId, ctx.Request.Method, path, &body, int16(status))
-}
-
 // 中间件，要求用户必须进行管理员登录才能访问API。
 // 管理员信息(AdminIdentity类型)存至ctx.Keys["identity"]。
 // 同时，如果有效token签发时间已经超过一个阙值，则提供一个新的token
 func RequireAdminWithRefresh(allowRefresh bool) gin.HandlerFunc {
+	preFunc := RequireLoginWithRefresh(allowRefresh)
 	return func(ctx *gin.Context) {
-		iden := AdminIdentity{}
-		if !parseToken(ctx, &iden, false) {
+		preFunc(ctx) //先解析为AdminIdentity
+
+		iden := ctx.MustGet("identity").(AdminIdentity)
+		if iden.At <= 0 || iden.Nickname == "" || iden.Level <= model.Null {
+			ctx.AbortWithStatusJSON(utils.MessageForbidden()) //不是管理员
 			return
 		}
-
-		if iden.Level <= model.Null || iden.At <= 0 {
-			//未以管理员登录(候选人身份登录)
-			ctx.AbortWithStatusJSON(utils.Message("暂无权限", 403, 11))
-			return
-		}
-
-		tryRefreshToken(allowRefresh, ctx, iden)
-		ctx.Set("identity", iden)
-
-		logContext(ctx)
 	}
 }
 
 // 中间件，要求用户必须进行登录才能访问API。适用于没有管理员权限的候选人登录。
-// 候选人信息(ApplicantIdentity类型)存至ctx.Keys["identity"]。
+// 候选人信息(AdminIdentity类型，At为0)存至ctx.Keys["identity"]。
 // 同时，如果有效token签发时间已经超过一个阙值，则提供一个新的token
 func RequireLoginWithRefresh(allowRefresh bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		iden := ApplicantIdentity{}
+		iden := AdminIdentity{At: 0, Level: model.Null, Nickname: ""}
 		if !parseToken(ctx, &iden, false) {
+			return
+		}
+
+		if iden.ZjuId == "" { //从JSON中反序列化zjuId失败，理论上后端正常工作不会出现
+			ctx.AbortWithStatusJSON(utils.Message("token无效", 401, 41))
 			return
 		}
 
 		tryRefreshToken(allowRefresh, ctx, iden)
 		ctx.Set("identity", iden)
-
-		logContext(ctx)
 	}
 }
 
@@ -254,7 +228,6 @@ func RequireLevel(requireLevel model.PermLevel) gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(utils.MessageForbidden())
 			return
 		}
-		ctx.Next()
 	}
 }
 
@@ -435,7 +408,7 @@ func switchOrg(ctx *gin.Context) {
 	orgId := arg.OrgId
 	admins := model.GetAdmin(zjuId, orgId)
 	if len(admins) == 0 {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
+		ctx.AbortWithStatusJSON(utils.MessageNotFound()) //找不到任何可管理的组织
 		return
 	}
 

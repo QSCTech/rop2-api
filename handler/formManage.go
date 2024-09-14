@@ -64,7 +64,7 @@ func editForm(ctx *gin.Context) {
 	formId := formUpdate.Id
 	orgId := iden.At
 	if !model.CheckFormOwner(orgId, formId) {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
+		ctx.AbortWithStatusJSON(utils.MessageNotFound()) //表单不存在或不属于该组织
 		return
 	}
 
@@ -141,7 +141,7 @@ func getFormStatistic(ctx *gin.Context) {
 
 	formId := arg.Id
 	if !model.CheckFormOwner(orgId, formId) {
-		ctx.AbortWithStatusJSON(utils.MessageForbidden())
+		ctx.AbortWithStatusJSON(utils.MessageNotFound())
 		return
 	}
 
