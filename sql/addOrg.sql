@@ -9,7 +9,7 @@ SELECT LAST_INSERT_ID() INTO @orgId;
 -- 新建默认部门
 INSERT INTO departs (`name`,create_at,`owner`) VALUES (concat(@orgName,"-默认部门"),now(),@orgId);
 SELECT LAST_INSERT_ID() INTO @defaultDepartId;
-UPDATE SET default_depart = @defaultDepartId WHERE id = @orgId;
+UPDATE orgs SET default_depart = @defaultDepartId WHERE id = @orgId;
 
 -- 新建普通部门
 INSERT INTO departs (`name`,create_at,`owner`) VALUES (@departName,now(),@orgId);
