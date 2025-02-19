@@ -77,7 +77,7 @@ type FormUpdate struct {
 func SaveForm(obj FormUpdate) error {
 	updateMap := make(map[string]interface{})
 	if obj.Name != nil {
-		if diff := utils.LenBetween(*obj.Name, 1, 25); diff != 0 {
+		if diff := utils.LenBetween(*obj.Name, 1, 100); diff != 0 {
 			if diff > 0 {
 				return errors.New("标题过长")
 			} else {
