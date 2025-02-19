@@ -12,6 +12,7 @@ rop2-web的配套api。
 - 使用gorm的`Scan`时，若返回空结果(返回行数为0)，不会修改提供的地址，因此如果是var声明的数组(没有make初始化)，将保持nil
 
 ### 部署方式
+将 config.example.yml 复制一份并重命名为 config.yml，然后修改必要的参数
 确保cwd下恰包含compose.yml。请使用Docker Compose v2.20+
 
 ```sh

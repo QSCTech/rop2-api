@@ -1,0 +1,10 @@
+Addr: "127.0.0.1:8080"
+DSN: "root:root@tcp(localhost:3306)/rop2?charset=utf8mb4&loc=Local&parseTime=true"
+MutipleChoicesRedirect: "http://localhost:5173/login/choice"
+LoginCallbackRegex: "^http://localhost:5173(/.*)?$"
+IdentityKey: "your-secret-key-here"  # 请修改此密钥
+TokenRefreshAfter: "2m"  # 2分钟
+TokenDuration: "24h"     # 24小时
+CORSAllowOrigins: 
+  - "http://localhost:5173"
+MigrateDb: false
